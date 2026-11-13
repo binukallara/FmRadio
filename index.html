@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Premium Live Radio Player</title>
-  <!-- HLS.js for m3u8 streams -->
+  <!-- HLS.js for m3u8 live streams -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
   <style>
     /* ---------- CSS ---------- */
@@ -24,11 +24,7 @@
       --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: var(--font);
@@ -53,7 +49,7 @@
       height: calc(100vh - 40px);
     }
 
-    /* ---------- Sidebar (Station List) ---------- */
+    /* Sidebar */
     .sidebar {
       background: var(--surface);
       backdrop-filter: blur(24px);
@@ -66,488 +62,127 @@
       overflow: hidden;
     }
 
-    .sidebar-header {
-      padding: 20px 20px 12px;
-      border-bottom: 1px solid var(--border);
-    }
-
+    .sidebar-header { padding: 20px 20px 12px; border-bottom: 1px solid var(--border); }
     .sidebar-header h1 {
-      font-size: 1.3rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
+      font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em;
       background: linear-gradient(135deg, var(--primary-glow), var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; display: flex; align-items: center; gap: 8px;
     }
+    .sidebar-header h1::before { content: "📻"; font-size: 1.4rem; -webkit-text-fill-color: initial; }
 
-    .sidebar-header h1::before {
-      content: "📻";
-      font-size: 1.4rem;
-      -webkit-text-fill-color: initial;
-    }
-
-    .search-box {
-      margin-top: 12px;
-      position: relative;
-    }
-
+    .search-box { margin-top: 12px; position: relative; }
     .search-box input {
-      width: 100%;
-      padding: 10px 14px 10px 38px;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--text);
-      font-size: 0.9rem;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      width: 100%; padding: 10px 14px 10px 38px; background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      color: var(--text); font-size: 0.9rem; outline: none; transition: all 0.2s;
     }
-
-    .search-box input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
-    }
-
+    .search-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2); }
     .search-box::before {
-      content: "🔍";
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 0.9rem;
-      opacity: 0.6;
+      content: "🔍"; position: absolute; left: 12px; top: 50%;
+      transform: translateY(-50%); font-size: 0.9rem; opacity: 0.6;
     }
 
     .category-filter {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      padding: 12px 20px;
+      display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 20px;
       border-bottom: 1px solid var(--border);
     }
-
     .category-filter button {
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
+      background: var(--surface-2); border: 1px solid var(--border); color: var(--text-muted);
+      padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 500;
+      cursor: pointer; transition: all 0.2s; white-space: nowrap;
     }
+    .category-filter button:hover { border-color: var(--primary); color: var(--text); }
+    .category-filter button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 
-    .category-filter button:hover {
-      border-color: var(--primary);
-      color: var(--text);
-    }
-
-    .category-filter button.active {
-      background: var(--primary);
-      border-color: var(--primary);
-      color: #fff;
-    }
-
-    .station-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-      scrollbar-width: thin;
-      scrollbar-color: var(--primary) transparent;
-    }
-
-    .station-list::-webkit-scrollbar {
-      width: 5px;
-    }
-
-    .station-list::-webkit-scrollbar-thumb {
-      background: var(--primary);
-      border-radius: 10px;
-    }
+    .station-list { flex: 1; overflow-y: auto; padding: 8px; scrollbar-width: thin; scrollbar-color: var(--primary) transparent; }
+    .station-list::-webkit-scrollbar { width: 5px; }
+    .station-list::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
 
     .station-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 12px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      border: 1px solid transparent;
+      display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+      border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; border: 1px solid transparent;
     }
-
-    .station-item:hover {
-      background: var(--surface-2);
-      border-color: var(--border);
-    }
-
-    .station-item.active {
-      background: linear-gradient(135deg, rgba(108, 92, 231, 0.25), rgba(253, 121, 168, 0.15));
-      border-color: var(--primary);
-    }
+    .station-item:hover { background: var(--surface-2); border-color: var(--border); }
+    .station-item.active { background: linear-gradient(135deg, rgba(108, 92, 231, 0.25), rgba(253, 121, 168, 0.15)); border-color: var(--primary); }
 
     .station-item .avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #fff;
-      flex-shrink: 0;
-      text-transform: uppercase;
+      width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 700; color: #fff; flex-shrink: 0;
     }
-
-    .station-item .info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .station-item .info .name {
-      font-size: 0.9rem;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .station-item .info .meta {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      display: flex;
-      gap: 8px;
-      margin-top: 2px;
-    }
-
-    .station-item .badge {
-      font-size: 0.6rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: rgba(108, 92, 231, 0.2);
-      color: var(--primary-glow);
-      letter-spacing: 0.03em;
-    }
-
-    .station-item .playing-indicator {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      border: 2px solid var(--primary);
-      position: relative;
-      flex-shrink: 0;
-      display: none;
-    }
-
-    .station-item.active .playing-indicator {
-      display: block;
-    }
-
+    .station-item .info { flex: 1; min-width: 0; }
+    .station-item .info .name { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .station-item .info .meta { font-size: 0.72rem; color: var(--text-muted); display: flex; gap: 8px; margin-top: 2px; }
+    .station-item .badge { font-size: 0.6rem; font-weight: 600; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: rgba(108, 92, 231, 0.2); color: var(--primary-glow); }
+    
+    .playing-indicator { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--primary); position: relative; flex-shrink: 0; display: none; }
+    .station-item.active .playing-indicator { display: block; }
     .station-item.active .playing-indicator::after {
-      content: "";
-      position: absolute;
-      inset: 3px;
-      border-radius: 50%;
-      background: var(--primary);
-      animation: pulse 1.2s infinite;
+      content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--primary); animation: pulse 1.2s infinite;
     }
+    @keyframes pulse { 0% { transform: scale(0.8); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.8); opacity: 0.8; } }
 
-    @keyframes pulse {
-      0% { transform: scale(0.8); opacity: 0.8; }
-      50% { transform: scale(1.2); opacity: 1; }
-      100% { transform: scale(0.8); opacity: 0.8; }
-    }
-
-    /* ---------- Main Player Area ---------- */
-    .player-area {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-      overflow: hidden;
-    }
-
+    /* Player Area */
+    .player-area { display: flex; flex-direction: column; gap: 24px; overflow: hidden; }
     .now-playing-card {
-      background: var(--surface);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 32px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-      min-height: 280px;
+      background: var(--surface); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 32px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; position: relative; overflow: hidden; min-height: 280px;
     }
-
-    .now-playing-card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(108, 92, 231, 0.1), transparent 60%);
-      pointer-events: none;
-    }
-
     .now-playing-art {
-      width: 140px;
-      height: 140px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 3.5rem;
-      color: #fff;
-      box-shadow: 0 0 60px rgba(108, 92, 231, 0.4);
-      margin-bottom: 20px;
-      position: relative;
-      transition: transform 0.3s;
+      width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex; align-items: center; justify-content: center; font-size: 3.5rem; color: #fff;
+      box-shadow: 0 0 60px rgba(108, 92, 231, 0.4); margin-bottom: 20px; transition: transform 0.3s;
     }
+    .now-playing-art.spinning { animation: spin 8s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-    .now-playing-art.spinning {
-      animation: spin 8s linear infinite;
-    }
+    .now-playing-name { font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; }
+    .now-playing-category { font-size: 0.85rem; color: var(--text-muted); text-transform: capitalize; }
+    .status-bar { margin-top: 16px; font-size: 0.78rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #00b894; box-shadow: 0 0 8px #00b894; animation: blink 2s infinite; }
+    .status-dot.error { background: #e74c3c; box-shadow: 0 0 8px #e74c3c; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    .now-playing-name {
-      font-size: 1.6rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 4px;
-    }
-
-    .now-playing-category {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      text-transform: capitalize;
-      letter-spacing: 0.04em;
-    }
-
-    .status-bar {
-      margin-top: 16px;
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #00b894;
-      box-shadow: 0 0 8px #00b894;
-      animation: blink 2s infinite;
-    }
-
-    .status-dot.error {
-      background: #e74c3c;
-      box-shadow: 0 0 8px #e74c3c;
-    }
-
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-
-    /* ---------- Player Controls ---------- */
+    /* Controls */
     .player-controls {
-      background: var(--surface);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 24px 32px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
+      background: var(--surface); backdrop-filter: blur(24px); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px 32px; display: flex; flex-direction: column; gap: 20px;
     }
-
-    .controls-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-    }
-
+    .controls-row { display: flex; align-items: center; justify-content: center; gap: 20px; }
     .ctrl-btn {
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-      cursor: pointer;
-      transition: all 0.2s;
+      background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+      width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; cursor: pointer; transition: all 0.2s;
     }
-
-    .ctrl-btn:hover {
-      border-color: var(--primary);
-      background: rgba(108, 92, 231, 0.2);
-      transform: scale(1.05);
-    }
-
+    .ctrl-btn:hover { border-color: var(--primary); background: rgba(108, 92, 231, 0.2); transform: scale(1.05); }
     .ctrl-btn.play-pause {
-      width: 64px;
-      height: 64px;
-      font-size: 1.6rem;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      border: none;
-      box-shadow: 0 4px 20px rgba(108, 92, 231, 0.4);
+      width: 64px; height: 64px; font-size: 1.6rem; background: linear-gradient(135deg, var(--primary), var(--accent));
+      border: none; box-shadow: 0 4px 20px rgba(108, 92, 231, 0.4);
     }
-
-    .ctrl-btn.play-pause:hover {
-      box-shadow: 0 6px 28px rgba(108, 92, 231, 0.6);
-    }
-
-    .ctrl-btn.play-pause:active {
-      transform: scale(0.95);
-    }
-
-    .volume-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      width: 100%;
-    }
-
-    .volume-row .icon {
-      font-size: 1.1rem;
-      cursor: pointer;
-      user-select: none;
-      opacity: 0.8;
-      transition: opacity 0.2s;
-    }
-
-    .volume-row .icon:hover {
-      opacity: 1;
-    }
-
-    .volume-slider {
-      flex: 1;
-      -webkit-appearance: none;
-      appearance: none;
-      height: 6px;
-      border-radius: 10px;
-      background: var(--surface-2);
-      outline: none;
-      cursor: pointer;
-    }
-
+    
+    .volume-row { display: flex; align-items: center; gap: 12px; width: 100%; }
+    .volume-row .icon { font-size: 1.1rem; cursor: pointer; user-select: none; opacity: 0.8; }
+    .volume-slider { flex: 1; -webkit-appearance: none; height: 6px; border-radius: 10px; background: var(--surface-2); outline: none; cursor: pointer; }
     .volume-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      box-shadow: 0 0 10px rgba(108, 92, 231, 0.6);
-      cursor: pointer;
-      transition: transform 0.1s;
+      -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent)); cursor: pointer;
     }
 
-    .volume-slider::-webkit-slider-thumb:hover {
-      transform: scale(1.2);
-    }
-
-    .volume-slider::-moz-range-thumb {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      box-shadow: 0 0 10px rgba(108, 92, 231, 0.6);
-      cursor: pointer;
-      border: none;
-    }
-
-    /* ---------- Loading Overlay ---------- */
+    /* Loading */
     .loading-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(11, 15, 25, 0.85);
-      backdrop-filter: blur(8px);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      z-index: 1000;
-      transition: opacity 0.4s, visibility 0.4s;
+      position: fixed; inset: 0; background: rgba(11, 15, 25, 0.85); backdrop-filter: blur(8px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 20px; z-index: 1000; transition: all 0.4s;
     }
+    .loading-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .spinner { width: 48px; height: 48px; border: 4px solid var(--surface-2); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .loading-overlay p { color: var(--text-muted); font-size: 0.9rem; }
 
-    .loading-overlay.hidden {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-
-    .spinner {
-      width: 48px;
-      height: 48px;
-      border: 4px solid var(--surface-2);
-      border-top-color: var(--primary);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-
-    .loading-overlay p {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-
-    /* ---------- Responsive ---------- */
     @media (max-width: 900px) {
-      .app {
-        grid-template-columns: 1fr;
-        height: auto;
-      }
-      .sidebar {
-        max-height: 400px;
-      }
-    }
-
-    @media (max-width: 600px) {
-      .now-playing-card {
-        padding: 20px;
-        min-height: 220px;
-      }
-      .now-playing-art {
-        width: 100px;
-        height: 100px;
-        font-size: 2.5rem;
-      }
-      .player-controls {
-        padding: 16px 20px;
-      }
-      .ctrl-btn.play-pause {
-        width: 56px;
-        height: 56px;
-        font-size: 1.4rem;
-      }
+      .app { grid-template-columns: 1fr; height: auto; }
+      .sidebar { max-height: 400px; }
     }
   </style>
 </head>
@@ -556,11 +191,11 @@
   <!-- Loading Overlay -->
   <div class="loading-overlay" id="loadingOverlay">
     <div class="spinner"></div>
-    <p>സ്റ്റേഷനുകൾ ലോഡ് ചെയ്യുന്നു...</p>
+    <p id="loadingText">സ്റ്റേഷനുകൾ ലോഡ് ചെയ്യുന്നു... (ഇതിന് കുറച്ച് സമയമെടുത്തേക്കാം)</p>
   </div>
 
   <div class="app">
-    <!-- Sidebar: Station List -->
+    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-header">
         <h1>Live Radio</h1>
@@ -568,17 +203,12 @@
           <input type="text" id="searchInput" placeholder="സ്റ്റേഷൻ തിരയുക...">
         </div>
       </div>
-      <div class="category-filter" id="categoryFilter">
-        <!-- Dynamically populated -->
-      </div>
-      <div class="station-list" id="stationList">
-        <!-- Dynamically populated -->
-      </div>
+      <div class="category-filter" id="categoryFilter"></div>
+      <div class="station-list" id="stationList"></div>
     </aside>
 
-    <!-- Main Player Area -->
+    <!-- Main Player -->
     <main class="player-area">
-      <!-- Now Playing Card -->
       <div class="now-playing-card">
         <div class="now-playing-art" id="nowPlayingArt">🎵</div>
         <div class="now-playing-name" id="nowPlayingName">ഒരു സ്റ്റേഷൻ തിരഞ്ഞെടുക്കുക</div>
@@ -589,69 +219,63 @@
         </div>
       </div>
 
-      <!-- Player Controls -->
       <div class="player-controls">
         <div class="controls-row">
-          <button class="ctrl-btn" id="prevBtn" title="മുൻപത്തെ സ്റ്റേഷൻ">⏮</button>
+          <button class="ctrl-btn" id="prevBtn" title="മുൻപത്തെ">⏮</button>
           <button class="ctrl-btn play-pause" id="playPauseBtn" title="പ്ലേ/പോസ്">▶</button>
-          <button class="ctrl-btn" id="nextBtn" title="അടുത്ത സ്റ്റേഷൻ">⏭</button>
+          <button class="ctrl-btn" id="nextBtn" title="അടുത്തത്">⏭</button>
         </div>
         <div class="volume-row">
           <span class="icon" id="muteBtn" title="മ്യൂട്ട്">🔊</span>
           <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.01" value="0.8">
-          <span class="icon" id="volumeValue">80%</span>
+          <span class="icon" id="volumeValue" style="font-size: 0.8rem; width: 35px; text-align: right;">80%</span>
         </div>
       </div>
     </main>
   </div>
 
-  <!-- Audio Element (hidden) -->
   <audio id="audioPlayer" preload="none"></audio>
 
   <script>
-    // ============================================================
-    //  Premium Live Radio Player – Logic
-    //  Loads all station lists from the GitHub repository
-    // ============================================================
-
     (function() {
       'use strict';
 
-      // ---------- Configuration ----------
+      // ============================================================
+      //  1. Configuration & State
+      // ============================================================
       const GITHUB_BASE = 'https://raw.githubusercontent.com/ranjithkannankattil/ranjithkannankattil.github.io/main/js/stations/';
 
-      // List of all station files (extracted from the repository)
       const STATION_FILES = [
-        'afrikaans.js', 'akan.js', 'albanian.js', 'amharic.js', 'arabic.js',
-        'azerbaijani.js', 'bambara.js', 'bengali.js', 'bhojpuri.js', 'bosnian.js',
-        'bulgarian.js', 'cantonese.js', 'catalan.js', 'chichewa.js', 'chinese.js',
-        'croatian.js', 'czech.js', 'danish.js', 'dutch.js', 'english-music.js',
-        'english-news.js', 'english-talk.js', 'estonian.js', 'filipino.js', 'finnish.js',
-        'french.js', 'german.js', 'greek.js', 'hebrew.js', 'hindi.js',
-        'hungarian.js', 'indonesian.js', 'italian.js', 'japanese.js', 'kannada.js',
-        'kazakh.js', 'korean.js', 'kurdish.js', 'latvian.js', 'lithuanian.js',
-        'luganda.js', 'macedonian.js', 'malay.js', 'malayalam.js', 'more-african.js',
-        'more-indian.js', 'nepali.js', 'norwegian.js', 'odia.js', 'persian.js',
-        'polish.js', 'portuguese-brazil.js', 'portuguese-portugal.js', 'punjabi.js',
-        'romanian.js', 'russian.js', 'serbian.js', 'sinhala.js', 'slovak.js',
-        'slovenian.js', 'south-african.js', 'spanish-latam.js', 'spanish-spain.js',
-        'swahili.js', 'swedish.js', 'tamil.js', 'telugu.js', 'thai.js',
+        'afrikaans.js', 'akan.js', 'albanian.js', 'amharic.js', 'arabic.js', 'azerbaijani.js', 
+        'bambara.js', 'bengali.js', 'bhojpuri.js', 'bosnian.js', 'bulgarian.js', 'cantonese.js', 
+        'catalan.js', 'chichewa.js', 'chinese.js', 'croatian.js', 'czech.js', 'danish.js', 
+        'dutch.js', 'english-music.js', 'english-news.js', 'english-talk.js', 'estonian.js', 
+        'filipino.js', 'finnish.js', 'french.js', 'german.js', 'greek.js', 'hebrew.js', 
+        'hindi.js', 'hungarian.js', 'indonesian.js', 'italian.js', 'japanese.js', 'kannada.js', 
+        'kazakh.js', 'korean.js', 'kurdish.js', 'latvian.js', 'lithuanian.js', 'luganda.js', 
+        'macedonian.js', 'malay.js', 'malayalam.js', 'more-african.js', 'more-indian.js', 
+        'nepali.js', 'norwegian.js', 'odia.js', 'persian.js', 'polish.js', 'portuguese-brazil.js', 
+        'portuguese-portugal.js', 'punjabi.js', 'romanian.js', 'russian.js', 'serbian.js', 
+        'sinhala.js', 'slovak.js', 'slovenian.js', 'south-african.js', 'spanish-latam.js', 
+        'spanish-spain.js', 'swahili.js', 'swedish.js', 'tamil.js', 'telugu.js', 'thai.js', 
         'turkish.js', 'ukrainian.js', 'urdu.js', 'vietnamese.js', 'yoruba-hausa.js'
       ];
 
-      // ---------- State ----------
-      let allStations = [];               // Merged list of all stations
-      let filteredStations = [];          // After search/filter
-      let currentStation = null;          // Currently selected station
-      let currentStreamIndex = 0;         // Index in station.streams
-      let hls = null;                     // Hls instance (if used)
+      let allStations = [];
+      let filteredStations = [];
+      let currentStation = null;
+      let currentStreamIndex = 0;
+      let hls = null;
       let isPlaying = false;
-      let currentCategory = 'all';        // 'all' or specific category
+      let currentCategory = 'all';
       let searchQuery = '';
 
-      // ---------- DOM Elements ----------
+      // ============================================================
+      //  2. DOM Elements
+      // ============================================================
       const audio = document.getElementById('audioPlayer');
       const loadingOverlay = document.getElementById('loadingOverlay');
+      const loadingText = document.getElementById('loadingText');
       const stationListEl = document.getElementById('stationList');
       const categoryFilterEl = document.getElementById('categoryFilter');
       const searchInput = document.getElementById('searchInput');
@@ -667,7 +291,9 @@
       const volumeSlider = document.getElementById('volumeSlider');
       const volumeValue = document.getElementById('volumeValue');
 
-      // ---------- Utility Functions ----------
+      // ============================================================
+      //  3. Utility Functions
+      // ============================================================
       function debounce(fn, delay) {
         let timer;
         return function(...args) {
@@ -689,83 +315,66 @@
           nowPlayingCategory.textContent = '—';
           return;
         }
-        const initial = station.name.charAt(0).toUpperCase();
-        nowPlayingArt.textContent = initial;
+        nowPlayingArt.textContent = station.name.charAt(0).toUpperCase();
         nowPlayingArt.classList.toggle('spinning', isPlaying);
         nowPlayingName.textContent = station.name;
         nowPlayingCategory.textContent = station.category || '—';
       }
 
-      // ---------- Load Station Files ----------
-      function loadAllStations() {
-        return new Promise((resolve, reject) => {
-          let loadedCount = 0;
-          const totalFiles = STATION_FILES.length;
-
-          // If no files, reject
-          if (totalFiles === 0) {
-            reject(new Error('No station files defined.'));
-            return;
-          }
-
-          // Load each file sequentially to avoid overwriting window.STATIONS
-          function loadNext(index) {
-            if (index >= totalFiles) {
-              // All done
-              resolve();
-              return;
+      // ============================================================
+      //  4. Fetch & Load Stations (CORS Fix Applied)
+      // ============================================================
+      async function loadAllStations() {
+        const loadedStations = [];
+        let processedCount = 0;
+        
+        // എല്ലാ ഫയലുകളും ഒരുമിച്ച് ലോഡ് ചെയ്യാൻ Promise.all ഉപയോഗിക്കുന്നു
+        const fetchPromises = STATION_FILES.map(async (fileName) => {
+          const url = GITHUB_BASE + fileName;
+          try {
+            // CORS ഒഴിവാക്കാൻ fetch ഉപയോഗിച്ച് ടെക്സ്റ്റ് രൂപത്തിൽ എടുക്കുന്നു
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const scriptText = await response.text();
+            
+            // ഫയലിനുള്ളിലെ window.STATIONS വേരിയബിൾ സുരക്ഷിതമായി എക്സ്ട്രാക്റ്റ് ചെയ്യുന്നു
+            let fileStations = null;
+            try {
+              const mockWindow = {};
+              // new Function ഉപയോഗിച്ച് സ്ക്രിപ്റ്റ് റൺ ചെയ്യുന്നു
+              const fn = new Function('window', `
+                ${scriptText}
+                return window.STATIONS || (typeof STATIONS !== 'undefined' ? STATIONS : null);
+              `);
+              fileStations = fn(mockWindow);
+            } catch (parseError) {
+              console.warn(`Parse error in ${fileName}:`, parseError);
             }
-
-            const fileName = STATION_FILES[index];
-            const url = GITHUB_BASE + fileName;
-
-            // Create a script element
-            const script = document.createElement('script');
-            script.src = url;
-            script.async = false; // Preserve order
-
-            // Before loading, clear any previous STATIONS
-            window.STATIONS = undefined;
-
-            script.onload = () => {
-              // Capture the stations defined by this script
-              if (Array.isArray(window.STATIONS)) {
-                // Add source file info (optional)
-                const stationsWithSource = window.STATIONS.map(st => ({
-                  ...st,
-                  _source: fileName
-                }));
-                allStations = allStations.concat(stationsWithSource);
-              }
-              // Clean up
-              window.STATIONS = undefined;
-              script.remove();
-
-              loadedCount++;
-              // Update loading message (optional)
-              // console.log(`Loaded ${fileName} (${loadedCount}/${totalFiles})`);
-
-              // Load next
-              loadNext(index + 1);
-            };
-
-            script.onerror = () => {
-              console.warn(`Failed to load ${fileName}`);
-              // Continue with next file even if one fails
-              loadNext(index + 1);
-            };
-
-            document.head.appendChild(script);
+            
+            if (Array.isArray(fileStations)) {
+              const stationsWithSource = fileStations.map(st => ({
+                ...st,
+                _source: fileName.replace('.js', '')
+              }));
+              loadedStations.push(...stationsWithSource);
+            }
+          } catch (err) {
+            console.warn(`Failed to load ${fileName}:`, err);
+          } finally {
+            processedCount++;
+            loadingText.textContent = `സ്റ്റേഷനുകൾ ലോഡ് ചെയ്യുന്നു... (${processedCount}/${STATION_FILES.length})`;
           }
-
-          // Start loading from index 0
-          loadNext(0);
         });
+
+        await Promise.all(fetchPromises);
+        return loadedStations;
       }
 
-      // ---------- Render Station List ----------
+      // ============================================================
+      //  5. UI Rendering
+      // ============================================================
       function renderStationList() {
-        // Filter stations based on search and category
         filteredStations = allStations.filter(station => {
           const matchesCategory = currentCategory === 'all' || station.category === currentCategory;
           const matchesSearch = searchQuery === '' ||
@@ -774,7 +383,6 @@
           return matchesCategory && matchesSearch;
         });
 
-        // Sort alphabetically by name
         filteredStations.sort((a, b) => a.name.localeCompare(b.name));
 
         if (filteredStations.length === 0) {
@@ -782,59 +390,43 @@
           return;
         }
 
-        // Build HTML
         const fragment = document.createDocumentFragment();
         filteredStations.forEach(station => {
           const div = document.createElement('div');
           div.className = 'station-item';
           div.dataset.id = station.id;
-
-          if (currentStation && currentStation.id === station.id) {
-            div.classList.add('active');
-          }
-
-          const initial = station.name.charAt(0).toUpperCase();
+          if (currentStation && currentStation.id === station.id) div.classList.add('active');
 
           div.innerHTML = `
-            <div class="avatar">${initial}</div>
+            <div class="avatar">${station.name.charAt(0).toUpperCase()}</div>
             <div class="info">
               <div class="name">${station.name}</div>
               <div class="meta">
                 <span class="badge">${station.category || 'radio'}</span>
-                ${station._source ? `<span>${station._source.replace('.js','')}</span>` : ''}
+                <span>${station._source || ''}</span>
               </div>
             </div>
             <div class="playing-indicator"></div>
           `;
 
-          div.addEventListener('click', () => {
-            selectStation(station);
-          });
-
+          div.addEventListener('click', () => selectStation(station));
           fragment.appendChild(div);
         });
 
         stationListEl.innerHTML = '';
         stationListEl.appendChild(fragment);
 
-        // Re-apply active class
         if (currentStation) {
           const activeEl = stationListEl.querySelector(`[data-id="${currentStation.id}"]`);
           if (activeEl) activeEl.classList.add('active');
         }
       }
 
-      // ---------- Render Category Filter ----------
       function renderCategoryFilter() {
-        // Get unique categories
         const categories = new Set();
-        allStations.forEach(st => {
-          if (st.category) categories.add(st.category);
-        });
-
+        allStations.forEach(st => { if (st.category) categories.add(st.category); });
         const sortedCategories = Array.from(categories).sort();
 
-        // Build filter buttons
         let html = `<button class="active" data-category="all">എല്ലാം</button>`;
         sortedCategories.forEach(cat => {
           html += `<button data-category="${cat}">${cat}</button>`;
@@ -842,7 +434,6 @@
 
         categoryFilterEl.innerHTML = html;
 
-        // Add event listeners
         categoryFilterEl.querySelectorAll('button').forEach(btn => {
           btn.addEventListener('click', () => {
             categoryFilterEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
@@ -853,116 +444,81 @@
         });
       }
 
-      // ---------- Audio Playback ----------
+      // ============================================================
+      //  6. Audio Playback Logic
+      // ============================================================
       function selectStation(station) {
         if (!station) return;
-
-        // If same station is selected, toggle play/pause
         if (currentStation && currentStation.id === station.id) {
           togglePlayPause();
           return;
         }
 
-        // Stop current playback
         stopPlayback();
-
-        // Set new station
         currentStation = station;
         currentStreamIndex = 0;
         updateNowPlayingUI(station);
         setStatus('ലോഡ് ചെയ്യുന്നു...');
 
-        // Update UI active state
-        document.querySelectorAll('.station-item').forEach(el => {
-          el.classList.remove('active');
-        });
+        document.querySelectorAll('.station-item').forEach(el => el.classList.remove('active'));
         const activeEl = stationListEl.querySelector(`[data-id="${station.id}"]`);
         if (activeEl) activeEl.classList.add('active');
 
-        // Attempt to play first stream
         tryPlayStream();
       }
 
       function tryPlayStream() {
         if (!currentStation) return;
-
         const streams = currentStation.streams;
+        
         if (!streams || streams.length === 0) {
           setStatus('സ്ട്രീം ലഭ്യമല്ല', true);
           return;
         }
-
-        // If we've tried all streams, mark as offline
         if (currentStreamIndex >= streams.length) {
           setStatus('എല്ലാ സ്ട്രീമുകളും പരാജയപ്പെട്ടു', true);
+          isPlaying = false;
+          playPauseBtn.textContent = '▶';
+          nowPlayingArt.classList.remove('spinning');
           return;
         }
 
         const streamUrl = streams[currentStreamIndex];
         setStatus(`സ്ട്രീം ${currentStreamIndex + 1}/${streams.length} ശ്രമിക്കുന്നു...`);
 
-        // Clean up previous Hls instance
-        if (hls) {
-          hls.destroy();
-          hls = null;
-        }
+        if (hls) { hls.destroy(); hls = null; }
 
-        // Check if stream is HLS (m3u8)
         const isHls = streamUrl.includes('.m3u8') || streamUrl.includes('m3u8');
 
         if (isHls) {
-          // Use Hls.js if supported
-          if (Hls.isSupported()) {
-            hls = new Hls({
-              enableWorker: true,
-              lowLatencyMode: true,
-            });
+          if (window.Hls && Hls.isSupported()) {
+            hls = new Hls({ enableWorker: true, lowLatencyMode: true });
             hls.loadSource(streamUrl);
             hls.attachMedia(audio);
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
-              audio.play().catch(e => {
-                console.warn('Autoplay blocked:', e);
-                setStatus('പ്ലേ ചെയ്യാൻ ക്ലിക്ക് ചെയ്യുക', true);
-              });
+              audio.play().catch(() => setStatus('പ്ലേ ചെയ്യാൻ ക്ലിക്ക് ചെയ്യുക', true));
             });
-            hls.on(Hls.Events.ERROR, (event, data) => {
-              if (data.fatal) {
-                console.error('HLS error:', data);
-                handleStreamError();
-              }
-            });
+            hls.on(Hls.Events.ERROR, (event, data) => { if (data.fatal) handleStreamError(); });
           } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
-            // Native HLS support (Safari)
             audio.src = streamUrl;
-            audio.play().catch(e => {
-              console.warn('Autoplay blocked:', e);
-              setStatus('പ്ലേ ചെയ്യാൻ ക്ലിക്ക് ചെയ്യുക', true);
-            });
+            audio.play().catch(() => setStatus('പ്ലേ ചെയ്യാൻ ക്ലിക്ക് ചെയ്യുക', true));
           } else {
-            // HLS not supported
             handleStreamError();
           }
         } else {
-          // Regular audio stream (MP3, AAC, etc.)
           audio.src = streamUrl;
-          audio.play().catch(e => {
-            console.warn('Autoplay blocked:', e);
-            setStatus('പ്ലേ ചെയ്യാൻ ക്ലിക്ക് ചെയ്യുക', true);
-          });
+          audio.play().catch(() => setStatus('പ്ലേ ചെയ്യാൻ ക്ലിക്ക് ചെയ്യുക', true));
         }
 
-        // Set up event listeners for this attempt
         setupAudioListeners();
       }
 
       function setupAudioListeners() {
-        // Remove previous listeners to avoid duplicates
         audio.removeEventListener('playing', onPlaying);
         audio.removeEventListener('error', onError);
         audio.removeEventListener('stalled', onStalled);
         audio.removeEventListener('ended', onEnded);
 
-        // Add new listeners
         audio.addEventListener('playing', onPlaying);
         audio.addEventListener('error', onError);
         audio.addEventListener('stalled', onStalled);
@@ -977,7 +533,7 @@
       }
 
       function onError() {
-        console.warn('Audio error for stream:', currentStation?.streams[currentStreamIndex]);
+        console.warn('Stream error:', currentStation?.streams[currentStreamIndex]);
         handleStreamError();
       }
 
@@ -992,14 +548,10 @@
       }
 
       function handleStreamError() {
-        // Try next stream
         currentStreamIndex++;
         if (currentStation && currentStreamIndex < currentStation.streams.length) {
           setStatus(`സ്ട്രീം ${currentStreamIndex + 1}/${currentStation.streams.length} ശ്രമിക്കുന്നു...`, true);
-          // Small delay before trying next
-          setTimeout(() => {
-            tryPlayStream();
-          }, 1000);
+          setTimeout(tryPlayStream, 1500); // അടുത്തത് ശ്രമിക്കാൻ ചെറിയ സമയം നൽകുന്നു
         } else {
           setStatus('എല്ലാ സ്ട്രീമുകളും പരാജയപ്പെട്ടു', true);
           isPlaying = false;
@@ -1009,10 +561,7 @@
       }
 
       function stopPlayback() {
-        if (hls) {
-          hls.destroy();
-          hls = null;
-        }
+        if (hls) { hls.destroy(); hls = null; }
         audio.pause();
         audio.removeAttribute('src');
         audio.load();
@@ -1023,10 +572,7 @@
 
       function togglePlayPause() {
         if (!currentStation) {
-          // If no station selected, select first in filtered list
-          if (filteredStations.length > 0) {
-            selectStation(filteredStations[0]);
-          }
+          if (filteredStations.length > 0) selectStation(filteredStations[0]);
           return;
         }
 
@@ -1037,52 +583,35 @@
           nowPlayingArt.classList.remove('spinning');
           setStatus('പോസ് ചെയ്തു');
         } else {
-          // If audio has no source, try to play again
-          if (!audio.src) {
+          if (!audio.src && !hls) {
             tryPlayStream();
           } else {
-            audio.play().catch(e => {
-              console.warn('Playback failed:', e);
-              setStatus('പ്ലേ ചെയ്യാൻ കഴിഞ്ഞില്ല', true);
-            });
+            audio.play().catch(() => setStatus('പ്ലേ ചെയ്യാൻ കഴിഞ്ഞില്ല', true));
           }
           playPauseBtn.textContent = '⏸';
         }
       }
 
-      // ---------- Navigation ----------
+      // ============================================================
+      //  7. Navigation & Volume
+      // ============================================================
       function playNextStation() {
         if (filteredStations.length === 0) return;
-        let index = -1;
-        if (currentStation) {
-          index = filteredStations.findIndex(s => s.id === currentStation.id);
-        }
-        const nextIndex = (index + 1) % filteredStations.length;
-        selectStation(filteredStations[nextIndex]);
+        let index = currentStation ? filteredStations.findIndex(s => s.id === currentStation.id) : -1;
+        selectStation(filteredStations[(index + 1) % filteredStations.length]);
       }
 
       function playPrevStation() {
         if (filteredStations.length === 0) return;
-        let index = -1;
-        if (currentStation) {
-          index = filteredStations.findIndex(s => s.id === currentStation.id);
-        }
-        const prevIndex = (index - 1 + filteredStations.length) % filteredStations.length;
-        selectStation(filteredStations[prevIndex]);
+        let index = currentStation ? filteredStations.findIndex(s => s.id === currentStation.id) : -1;
+        selectStation(filteredStations[(index - 1 + filteredStations.length) % filteredStations.length]);
       }
 
-      // ---------- Volume Control ----------
       function setVolume(value) {
         audio.volume = value;
         volumeSlider.value = value;
         volumeValue.textContent = Math.round(value * 100) + '%';
-        if (value === 0) {
-          muteBtn.textContent = '🔇';
-        } else if (value < 0.5) {
-          muteBtn.textContent = '🔉';
-        } else {
-          muteBtn.textContent = '🔊';
-        }
+        muteBtn.textContent = value === 0 ? '🔇' : (value < 0.5 ? '🔉' : '🔊');
       }
 
       function toggleMute() {
@@ -1090,79 +619,57 @@
           audio.dataset.prevVolume = audio.volume;
           setVolume(0);
         } else {
-          const prev = parseFloat(audio.dataset.prevVolume) || 0.8;
-          setVolume(prev);
+          setVolume(parseFloat(audio.dataset.prevVolume) || 0.8);
         }
       }
 
-      // ---------- Event Listeners ----------
+      // ============================================================
+      //  8. Event Listeners
+      // ============================================================
       playPauseBtn.addEventListener('click', togglePlayPause);
       nextBtn.addEventListener('click', playNextStation);
       prevBtn.addEventListener('click', playPrevStation);
       muteBtn.addEventListener('click', toggleMute);
-
-      volumeSlider.addEventListener('input', (e) => {
-        setVolume(parseFloat(e.target.value));
-      });
-
-      // Search
+      volumeSlider.addEventListener('input', (e) => setVolume(parseFloat(e.target.value)));
       searchInput.addEventListener('input', debounce((e) => {
         searchQuery = e.target.value.trim();
         renderStationList();
       }, 200));
 
-      // Keyboard shortcuts
       document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT') return;
-        if (e.code === 'Space') {
-          e.preventDefault();
-          togglePlayPause();
-        } else if (e.code === 'ArrowRight') {
-          playNextStation();
-        } else if (e.code === 'ArrowLeft') {
-          playPrevStation();
-        } else if (e.code === 'KeyM') {
-          toggleMute();
-        }
+        if (e.code === 'Space') { e.preventDefault(); togglePlayPause(); }
+        else if (e.code === 'ArrowRight') playNextStation();
+        else if (e.code === 'ArrowLeft') playPrevStation();
+        else if (e.code === 'KeyM') toggleMute();
       });
 
-      // ---------- Initialize ----------
+      // ============================================================
+      //  9. Initialize App
+      // ============================================================
       async function init() {
         try {
-          // Load all station files
-          await loadAllStations();
+          allStations = await loadAllStations();
 
-          // If no stations loaded, show error
           if (allStations.length === 0) {
-            loadingOverlay.innerHTML = '<p style="color:#e74c3c;">സ്റ്റേഷനുകൾ ലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല. ദയവായി വീണ്ടും ശ്രമിക്കുക.</p>';
+            loadingOverlay.innerHTML = '<p style="color:#e74c3c; text-align:center; padding: 20px;">സ്റ്റേഷനുകൾ ലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല. ദയവായി ഇന്റർനെറ്റ് കണക്ഷൻ പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.</p>';
             return;
           }
 
-          // Render UI
           renderCategoryFilter();
           renderStationList();
-
-          // Set default volume
           setVolume(0.8);
-
-          // Hide loading overlay
+          
           loadingOverlay.classList.add('hidden');
-
-          // Auto-select first station? (optional)
-          // if (filteredStations.length > 0) {
-          //   selectStation(filteredStations[0]);
-          // }
-
           setStatus('തയ്യാറാണ്');
+          
         } catch (err) {
           console.error('Init error:', err);
           loadingOverlay.innerHTML = '<p style="color:#e74c3c;">എന്തോ കുഴപ്പം സംഭവിച്ചു. കൺസോൾ പരിശോധിക്കുക.</p>';
         }
       }
 
-      // Start the app
       init();
-
     })();
   </script>
 </body>

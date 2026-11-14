@@ -7,11 +7,11 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
   <style>
     :root {
-      --bg: #f7f5f0; /* ചിത്രത്തിലെ ബാക്ക്ഗ്രൗണ്ട് നിറം */
+      --bg: #f7f5f0;
       --surface: #ffffff;
       --surface-2: #f0ece1;
       --primary: #6c5ce7;
-      --primary-light: #f3e8f8; /* ചിത്രത്തിലെ സെലക്ട് ചെയ്ത കളർ */
+      --primary-light: #f3e8f8;
       --accent: #fd79a8;
       --text: #1a1a1a;
       --text-muted: #666666;
@@ -41,7 +41,6 @@
       position: relative;
     }
 
-    /* ---------- Header ---------- */
     .app-header {
       padding: 16px 20px;
       background: var(--surface);
@@ -52,13 +51,10 @@
     }
     .app-header h1 { font-size: 1.2rem; font-weight: 700; }
     
-    /* ---------- Views ---------- */
     .view { display: none; flex: 1; overflow-y: auto; }
     .view.active { display: flex; flex-direction: column; }
 
-    /* ==========================================
-       HOME VIEW (Category Selection)
-       ========================================== */
+    /* Home View */
     .home-content {
       padding: 20px;
       display: flex;
@@ -117,9 +113,7 @@
       color: var(--text-muted);
     }
 
-    /* ==========================================
-       LIST VIEW (Station Selection)
-       ========================================== */
+    /* List View */
     .list-header {
       padding: 16px 20px;
       background: var(--surface);
@@ -207,9 +201,7 @@
     }
     @keyframes pulse { 0% { transform: scale(0.8); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.8); opacity: 0.8; } }
 
-    /* ==========================================
-       BOTTOM PLAYER (Sticky)
-       ========================================== */
+    /* Bottom Player */
     .bottom-player {
       background: var(--surface);
       border-top: 1px solid var(--border);
@@ -290,30 +282,26 @@
       <h1>📻 Live Radio</h1>
     </header>
 
-    <!-- ================= HOME VIEW ================= -->
+    <!-- HOME VIEW -->
     <div class="view active" id="homeView">
       <div class="home-content">
         
-        <!-- Total Stations Section -->
         <div>
           <div class="section-title">All Languages Together</div>
           <div class="category-grid">
-            <div class="category-card" onclick="openCategory('all', 'All Stations')">
+            <div class="category-card" onclick="openCategory('all', 'all', 'Every Station')">
               <div class="cat-name">Every Station</div>
               <div class="cat-meta" id="totalStationsCount">0 stations</div>
             </div>
           </div>
         </div>
 
-        <!-- Dynamically Rendered Categories -->
-        <div id="dynamicCategoriesContainer">
-          <!-- Categories will be injected here -->
-        </div>
+        <div id="dynamicCategoriesContainer"></div>
 
       </div>
     </div>
 
-    <!-- ================= LIST VIEW ================= -->
+    <!-- LIST VIEW -->
     <div class="view" id="listView">
       <div class="list-header">
         <button class="back-btn" onclick="goHome()">← Back to Categories</button>
@@ -323,12 +311,10 @@
           <input type="text" id="searchInput" placeholder="Search in this category...">
         </div>
       </div>
-      <div class="station-list" id="stationList">
-        <!-- Stations injected here -->
-      </div>
+      <div class="station-list" id="stationList"></div>
     </div>
 
-    <!-- ================= BOTTOM PLAYER ================= -->
+    <!-- BOTTOM PLAYER -->
     <div class="bottom-player">
       <div class="now-playing-info">
         <div class="np-text">
@@ -376,7 +362,7 @@
       ];
 
       let allStations = [];
-      let displayStations = []; // Current list being displayed
+      let displayStations = [];
       let currentStation = null;
       let currentStreamIndex = 0;
       let hls = null;
@@ -384,7 +370,6 @@
       let currentCategory = 'all';
       let searchQuery = '';
 
-      // DOM
       const audio = document.getElementById('audioPlayer');
       const loadingOverlay = document.getElementById('loadingOverlay');
       const loadingText = document.getElementById('loadingText');
@@ -405,13 +390,11 @@
       const muteBtn = document.getElementById('muteBtn');
       const volumeSlider = document.getElementById('volumeSlider');
 
-      // --- Utility ---
       function setStatus(text, isError = false) {
         npStatus.textContent = text;
         statusDot.classList.toggle('error', isError);
       }
 
-      // --- 1. Data Loading ---
       async function loadAllStations() {
         const loadedStations = [];
         let processedCount = 0;
@@ -444,27 +427,9 @@
         return loadedStations;
       }
 
-      // --- 2. UI Rendering ---
       function renderHomePage() {
         document.getElementById('totalStationsCount').textContent = `${allStations.length} stations`;
 
-        // Group by category
-        const categoriesMap = {};
-        allStations.forEach(st => {
-          let cat = st.category || 'Other';
-          // Capitalize first letter
-          cat = cat.charAt(0).toUpperCase() + cat.slice(1);
-          if (!categoriesMap[cat]) categoriesMap[cat] = 0;
-          categoriesMap[cat]++;
-        });
-
-        // Sort categories alphabetically
-        const sortedCats = Object.keys(categoriesMap).sort();
-
-        // Render Grids (Grouping them just for visual structure like the screenshot)
-        // For simplicity, we will just list them under one section, but we can group them by "Source File"
-        // to mimic the "India & South Asia" sections.
-        
         const sourcesMap = {};
         allStations.forEach(st => {
           const src = st._source || 'Other';
@@ -475,15 +440,12 @@
         });
 
         let html = '';
-        
-        // Use Source Files as Sections (e.g., "MALAYALAM & ENGLISH", "INDIA & SOUTH ASIA")
-        // We'll filter out some to make it clean, or just show all sources as sections.
         const sortedSources = Object.keys(sourcesMap).sort();
 
         sortedSources.forEach(source => {
           if (source === 'Other') return;
           
-          const sectionTitle = source.replace(/-/g, ' ').toUpperCase(); // e.g. "ENGLISH MUSIC"
+          const sectionTitle = source.replace(/-/g, ' ').toUpperCase();
           const cats = sourcesMap[source];
           
           html += `<div style="margin-bottom: 24px;">
@@ -493,7 +455,6 @@
           Object.keys(cats).sort().forEach(cat => {
             const count = cats[cat];
             const catName = cat.charAt(0).toUpperCase() + cat.slice(1);
-            // We use source and category combined as ID to filter exactly
             html += `
               <div class="category-card" onclick="openCategory('${cat}', '${source}', '${catName}')">
                 <div class="cat-name">${catName}</div>
@@ -508,23 +469,28 @@
         dynamicCategoriesContainer.innerHTML = html;
       }
 
+      // 🛠️ ഇവിടെയാണ് പ്രധാന മാറ്റം വരുത്തിയിരിക്കുന്നത്
       window.openCategory = function(category, source, displayName) {
         currentCategory = category;
         searchQuery = '';
         searchInput.value = '';
 
-        // Filter stations
-        displayStations = allStations.filter(st => {
-          const matchCat = st.category === category || category === 'all';
-          const matchSrc = source === 'all' || st._source === source;
-          return matchCat && matchSrc;
-        });
+        // "Every Station" ആണെങ്കിൽ എല്ലാം കാണിക്കുക
+        if (category === 'all') {
+          displayStations = [...allStations];
+        } else {
+          // മറ്റുള്ളവയ്ക്ക് കൃത്യമായി ഫിൽട്ടർ ചെയ്യുക
+          displayStations = allStations.filter(st => {
+            const matchCat = st.category === category;
+            const matchSrc = source === 'all' || st._source === source;
+            return matchCat && matchSrc;
+          });
+        }
 
         currentCategoryTitle.textContent = displayName;
         currentCategorySubtitle.textContent = `${displayStations.length} stations`;
 
         renderStationList(displayStations);
-
         homeView.classList.remove('active');
         listView.classList.add('active');
       };
@@ -563,7 +529,6 @@
         stationListEl.appendChild(fragment);
       }
 
-      // --- 3. Playback Logic ---
       function selectStation(station) {
         if (currentStation && currentStation.id === station.id) {
           togglePlayPause();
@@ -667,7 +632,6 @@
         }
       }
 
-      // --- 4. Events ---
       playPauseBtn.addEventListener('click', togglePlayPause);
       nextBtn.addEventListener('click', () => {
         if (displayStations.length === 0) return;
@@ -702,7 +666,6 @@
         renderStationList(filtered);
       });
 
-      // --- 5. Init ---
       async function init() {
         allStations = await loadAllStations();
         if (allStations.length === 0) {

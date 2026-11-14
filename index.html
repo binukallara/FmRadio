@@ -286,18 +286,16 @@
     <div class="view active" id="homeView">
       <div class="home-content">
         
-        <!-- Every Station Section -->
         <div>
           <div class="section-title">All Languages Together</div>
           <div class="category-grid">
-            <div class="category-card" onclick="openCategory('all', 'all', 'Every Station')">
+            <div class="category-card" onclick="openLanguage('all', 'Every Station')">
               <div class="cat-name">Every Station</div>
               <div class="cat-meta" id="totalStationsCount">0 stations</div>
             </div>
           </div>
         </div>
 
-        <!-- Dynamic Categories -->
         <div id="dynamicCategoriesContainer"></div>
 
       </div>
@@ -363,7 +361,6 @@
         'turkish.js', 'ukrainian.js', 'urdu.js', 'vietnamese.js', 'yoruba-hausa.js'
       ];
 
-      // മുൻഗണന നൽകേണ്ട ഭാഷകൾ (Malayalam ആദ്യം)
       const PRIORITY_LANGUAGES = [
         'malayalam', 'hindi', 'tamil', 'telugu', 'kannada', 'bengali', 'punjabi', 
         'urdu', 'bhojpuri', 'odia', 'nepali', 'sinhala'
@@ -438,10 +435,9 @@
       function renderHomePage() {
         document.getElementById('totalStationsCount').textContent = `${allStations.length} stations`;
 
-        // ഭാഷ അനുസരിച്ച് ഗ്രൂപ്പ് ചെയ്യുന്നു (_source അനുസരിച്ച്)
         const languageMap = {};
         allStations.forEach(st => {
-          const lang = st._source || 'Other'; // ഉദാ: 'malayalam', 'hindi', 'english music'
+          const lang = st._source || 'Other';
           if (!languageMap[lang]) {
             languageMap[lang] = 0;
           }
@@ -450,27 +446,22 @@
 
         let sortedLanguages = Object.keys(languageMap);
 
-        // 🌟 ഭാഷകൾ ക്രമീകരിക്കുന്നു (Malayalam ആദ്യം)
         sortedLanguages.sort((a, b) => {
           const aLower = a.toLowerCase();
           const bLower = b.toLowerCase();
           
-          // മലയാളം എപ്പോഴും ആദ്യം
           if (aLower.includes('malayalam')) return -1;
           if (bLower.includes('malayalam')) return 1;
 
-          // മറ്റ് ഇന്ത്യൻ ഭാഷകൾ അടുത്തത്
           const aIsPriority = PRIORITY_LANGUAGES.some(p => aLower.includes(p));
           const bIsPriority = PRIORITY_LANGUAGES.some(p => bLower.includes(p));
           
           if (aIsPriority && !bIsPriority) return -1;
           if (!aIsPriority && bIsPriority) return 1;
 
-          // ബാക്കിയുള്ളവ അക്ഷരമാലാക്രമത്തിൽ
           return a.localeCompare(b);
         });
 
-        // വിഭാഗങ്ങളായി തിരിക്കുന്നു (Indian vs Others)
         let indiaHtml = '';
         let otherHtml = '';
 
@@ -478,7 +469,6 @@
           const count = languageMap[lang];
           let displayName = lang.charAt(0).toUpperCase() + lang.slice(1);
           
-          // പേരുകൾ മനോഹരമാക്കാൻ
           if (displayName === 'English music') displayName = 'English Music';
           if (displayName === 'English news') displayName = 'English News';
           if (displayName === 'English talk') displayName = 'English Talk';
@@ -505,7 +495,6 @@
 
         let html = '';
 
-        // ഇന്ത്യൻ ഭാഷകൾ ആദ്യം
         if (indiaHtml) {
           html += `
             <div style="margin-bottom: 24px;">
@@ -515,7 +504,6 @@
           `;
         }
 
-        // മറ്റ് ഭാഷകൾ
         if (otherHtml) {
           html += `
             <div style="margin-bottom: 24px;">
@@ -528,7 +516,7 @@
         dynamicCategoriesContainer.innerHTML = html;
       }
 
-      // ഭാഷ അനുസരിച്ച് സ്റ്റേഷനുകൾ കാണിക്കാൻ
+      // 🛠️ History API ഉപയോഗിച്ച് പേജ് മാറ്റങ്ങൾ ട്രാക്ക് ചെയ്യുന്നു
       window.openLanguage = function(lang, displayName) {
         currentCategory = lang;
         searchQuery = '';
@@ -544,19 +532,45 @@
         currentCategorySubtitle.textContent = `${displayStations.length} stations`;
 
         renderStationList(displayStations);
+        
+        // URL മാറ്റുന്നു (Back button പ്രവർത്തിക്കാൻ)
+        history.pushState({ view: 'list', lang: lang }, '', '?lang=' + encodeURIComponent(lang));
+        
         homeView.classList.remove('active');
         listView.classList.add('active');
       };
 
-      // (പഴയ openCategory ഫങ്ക്ഷൻ ഒഴിവാക്കി, 'all' ക്ലിക്കിന് വേണ്ടി ഇത് നിലനിർത്തുന്നു)
-      window.openCategory = function(category, source, displayName) {
-        window.openLanguage(source, displayName);
+      window.goHome = function() {
+        // സ്വമേധയാ Back ബട്ടൺ അമർത്തിയാൽ പോലും ചരിത്രം ശരിയാകാൻ
+        history.back(); 
       };
 
-      window.goHome = function() {
-        listView.classList.remove('active');
-        homeView.classList.add('active');
-      };
+      // ബ്രൗസർ/ഫോൺ ബാക്ക് ബട്ടൺ അമർത്തുമ്പോൾ പ്രവർത്തിക്കുന്ന ഫങ്ക്ഷൻ
+      window.addEventListener('popstate', function(event) {
+        if (event.state && event.state.view === 'list') {
+          // വീണ്ടും ലിസ്റ്റിലേക്ക് വരുമ്പോൾ
+          const lang = event.state.lang;
+          if (lang === 'all') {
+            displayStations = [...allStations];
+          } else {
+            displayStations = allStations.filter(st => st._source === lang);
+          }
+          let displayName = lang === 'all' ? 'Every Station' : lang.charAt(0).toUpperCase() + lang.slice(1);
+          currentCategoryTitle.textContent = displayName;
+          currentCategorySubtitle.textContent = `${displayStations.length} stations`;
+          renderStationList(displayStations);
+
+          homeView.classList.remove('active');
+          listView.classList.add('active');
+        } else {
+          // ഹോം പേജിലേക്ക് തിരികെ വരുമ്പോൾ
+          listView.classList.remove('active');
+          homeView.classList.add('active');
+        }
+      });
+
+      // ആദ്യം ലോഡ് ചെയ്യുമ്പോൾ ഒരു അടിസ്ഥാന ചരിത്രം (History) ഉണ്ടാക്കുന്നു
+      history.replaceState({ view: 'home' }, '', window.location.pathname);
 
       function renderStationList(stations) {
         if (stations.length === 0) {

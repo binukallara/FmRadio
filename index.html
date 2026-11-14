@@ -363,10 +363,10 @@
         'turkish.js', 'ukrainian.js', 'urdu.js', 'vietnamese.js', 'yoruba-hausa.js'
       ];
 
-      // ഇന്ത്യൻ ഭാഷകൾക്ക് മുൻഗണന നൽകാനുള്ള ലിസ്റ്റ്
-      const PRIORITY_SOURCES = [
+      // മുൻഗണന നൽകേണ്ട ഭാഷകൾ (Malayalam ആദ്യം)
+      const PRIORITY_LANGUAGES = [
         'malayalam', 'hindi', 'tamil', 'telugu', 'kannada', 'bengali', 'punjabi', 
-        'urdu', 'bhojpuri', 'odia', 'nepali', 'sinhala', 'more indian', 'more indian'
+        'urdu', 'bhojpuri', 'odia', 'nepali', 'sinhala'
       ];
 
       let allStations = [];
@@ -438,20 +438,20 @@
       function renderHomePage() {
         document.getElementById('totalStationsCount').textContent = `${allStations.length} stations`;
 
-        const sourcesMap = {};
+        // ഭാഷ അനുസരിച്ച് ഗ്രൂപ്പ് ചെയ്യുന്നു (_source അനുസരിച്ച്)
+        const languageMap = {};
         allStations.forEach(st => {
-          const src = st._source || 'Other';
-          if (!sourcesMap[src]) sourcesMap[src] = {};
-          const cat = st.category || 'radio';
-          if (!sourcesMap[src][cat]) sourcesMap[src][cat] = 0;
-          sourcesMap[src][cat]++;
+          const lang = st._source || 'Other'; // ഉദാ: 'malayalam', 'hindi', 'english music'
+          if (!languageMap[lang]) {
+            languageMap[lang] = 0;
+          }
+          languageMap[lang]++;
         });
 
-        let html = '';
-        let sortedSources = Object.keys(sourcesMap);
+        let sortedLanguages = Object.keys(languageMap);
 
-        // 🌟 മുൻഗണനാ ക്രമീകരണം (Priority Sorting)
-        sortedSources.sort((a, b) => {
+        // 🌟 ഭാഷകൾ ക്രമീകരിക്കുന്നു (Malayalam ആദ്യം)
+        sortedLanguages.sort((a, b) => {
           const aLower = a.toLowerCase();
           const bLower = b.toLowerCase();
           
@@ -460,8 +460,8 @@
           if (bLower.includes('malayalam')) return 1;
 
           // മറ്റ് ഇന്ത്യൻ ഭാഷകൾ അടുത്തത്
-          const aIsPriority = PRIORITY_SOURCES.some(p => aLower.includes(p));
-          const bIsPriority = PRIORITY_SOURCES.some(p => bLower.includes(p));
+          const aIsPriority = PRIORITY_LANGUAGES.some(p => aLower.includes(p));
+          const bIsPriority = PRIORITY_LANGUAGES.some(p => bLower.includes(p));
           
           if (aIsPriority && !bIsPriority) return -1;
           if (!aIsPriority && bIsPriority) return 1;
@@ -470,65 +470,74 @@
           return a.localeCompare(b);
         });
 
-        sortedSources.forEach((source, index) => {
-          if (source === 'Other') return;
-          
-          const cats = sourcesMap[source];
-          // സെക്ഷൻ ടൈറ്റിൽ മാറ്റുന്നു (ഉദാ: "INDIA & SOUTH ASIA" എന്ന് കാണിക്കാൻ)
-          let sectionTitle = source.replace(/-/g, ' ').toUpperCase();
-          if (index === 0 || PRIORITY_SOURCES.some(p => source.toLowerCase().includes(p))) {
-             if (index === 0 || !html.includes('INDIA & SOUTH ASIA')) {
-                 if (PRIORITY_SOURCES.some(p => source.toLowerCase().includes(p))) {
-                     sectionTitle = "🇮🇳 INDIA & SOUTH ASIA";
-                 }
-             }
-          }
+        // വിഭാഗങ്ങളായി തിരിക്കുന്നു (Indian vs Others)
+        let indiaHtml = '';
+        let otherHtml = '';
 
-          html += `<div style="margin-bottom: 24px;">
-            <div class="section-title">${sectionTitle}</div>
-            <div class="category-grid">`;
-            
-          // ഓരോ സെക്ഷനിലും മലയാളം ആദ്യം വരാൻ
-          let sortedCats = Object.keys(cats).sort((a, b) => {
-            if (a.toLowerCase().includes('malayalam')) return -1;
-            if (b.toLowerCase().includes('malayalam')) return 1;
-            return a.localeCompare(b);
-          });
-            
-          sortedCats.forEach(cat => {
-            const count = cats[cat];
-            const catName = cat.charAt(0).toUpperCase() + cat.slice(1);
-            // മലയാളം ഹൈലൈറ്റ് ചെയ്യാൻ
-            const isMalayalam = catName.toLowerCase().includes('malayalam');
-            const highlightStyle = isMalayalam ? 'style="border-color: var(--accent); background: #fffcfc;"' : '';
-            
-            html += `
-              <div class="category-card" ${highlightStyle} onclick="openCategory('${cat}', '${source}', '${catName}')">
-                <div class="cat-name">${isMalayalam ? '🌟 ' : ''}${catName}</div>
-                <div class="cat-meta">${count} stations</div>
-              </div>
-            `;
-          });
+        sortedLanguages.forEach(lang => {
+          const count = languageMap[lang];
+          let displayName = lang.charAt(0).toUpperCase() + lang.slice(1);
           
-          html += `</div></div>`;
+          // പേരുകൾ മനോഹരമാക്കാൻ
+          if (displayName === 'English music') displayName = 'English Music';
+          if (displayName === 'English news') displayName = 'English News';
+          if (displayName === 'English talk') displayName = 'English Talk';
+          if (displayName === 'More indian') displayName = 'More Indian';
+          if (displayName === 'More african') displayName = 'More African';
+          if (displayName === 'South african') displayName = 'South African';
+
+          const isIndian = PRIORITY_LANGUAGES.some(p => lang.toLowerCase().includes(p));
+          const isMalayalam = lang.toLowerCase().includes('malayalam');
+          
+          const cardHtml = `
+            <div class="category-card" ${isMalayalam ? 'style="border-color: var(--accent); background: #fffcfc;"' : ''} onclick="openLanguage('${lang}', '${displayName}')">
+              <div class="cat-name">${isMalayalam ? '🌟 ' : ''}${displayName}</div>
+              <div class="cat-meta">${count} stations</div>
+            </div>
+          `;
+
+          if (isIndian || isMalayalam) {
+            indiaHtml += cardHtml;
+          } else {
+            otherHtml += cardHtml;
+          }
         });
+
+        let html = '';
+
+        // ഇന്ത്യൻ ഭാഷകൾ ആദ്യം
+        if (indiaHtml) {
+          html += `
+            <div style="margin-bottom: 24px;">
+              <div class="section-title">🇮🇳 INDIA & SOUTH ASIA</div>
+              <div class="category-grid">${indiaHtml}</div>
+            </div>
+          `;
+        }
+
+        // മറ്റ് ഭാഷകൾ
+        if (otherHtml) {
+          html += `
+            <div style="margin-bottom: 24px;">
+              <div class="section-title">🌍 WORLDWIDE LANGUAGES</div>
+              <div class="category-grid">${otherHtml}</div>
+            </div>
+          `;
+        }
 
         dynamicCategoriesContainer.innerHTML = html;
       }
 
-      window.openCategory = function(category, source, displayName) {
-        currentCategory = category;
+      // ഭാഷ അനുസരിച്ച് സ്റ്റേഷനുകൾ കാണിക്കാൻ
+      window.openLanguage = function(lang, displayName) {
+        currentCategory = lang;
         searchQuery = '';
         searchInput.value = '';
 
-        if (category === 'all') {
+        if (lang === 'all') {
           displayStations = [...allStations];
         } else {
-          displayStations = allStations.filter(st => {
-            const matchCat = st.category === category;
-            const matchSrc = source === 'all' || st._source === source;
-            return matchCat && matchSrc;
-          });
+          displayStations = allStations.filter(st => st._source === lang);
         }
 
         currentCategoryTitle.textContent = displayName;
@@ -537,6 +546,11 @@
         renderStationList(displayStations);
         homeView.classList.remove('active');
         listView.classList.add('active');
+      };
+
+      // (പഴയ openCategory ഫങ്ക്ഷൻ ഒഴിവാക്കി, 'all' ക്ലിക്കിന് വേണ്ടി ഇത് നിലനിർത്തുന്നു)
+      window.openCategory = function(category, source, displayName) {
+        window.openLanguage(source, displayName);
       };
 
       window.goHome = function() {

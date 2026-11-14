@@ -286,6 +286,7 @@
     <div class="view active" id="homeView">
       <div class="home-content">
         
+        <!-- Every Station Section -->
         <div>
           <div class="section-title">All Languages Together</div>
           <div class="category-grid">
@@ -296,6 +297,7 @@
           </div>
         </div>
 
+        <!-- Dynamic Categories -->
         <div id="dynamicCategoriesContainer"></div>
 
       </div>
@@ -359,6 +361,12 @@
         'sinhala.js', 'slovak.js', 'slovenian.js', 'south-african.js', 'spanish-latam.js', 
         'spanish-spain.js', 'swahili.js', 'swedish.js', 'tamil.js', 'telugu.js', 'thai.js', 
         'turkish.js', 'ukrainian.js', 'urdu.js', 'vietnamese.js', 'yoruba-hausa.js'
+      ];
+
+      // ഇന്ത്യൻ ഭാഷകൾക്ക് മുൻഗണന നൽകാനുള്ള ലിസ്റ്റ്
+      const PRIORITY_SOURCES = [
+        'malayalam', 'hindi', 'tamil', 'telugu', 'kannada', 'bengali', 'punjabi', 
+        'urdu', 'bhojpuri', 'odia', 'nepali', 'sinhala', 'more indian', 'more indian'
       ];
 
       let allStations = [];
@@ -440,25 +448,64 @@
         });
 
         let html = '';
-        const sortedSources = Object.keys(sourcesMap).sort();
+        let sortedSources = Object.keys(sourcesMap);
 
-        sortedSources.forEach(source => {
+        // 🌟 മുൻഗണനാ ക്രമീകരണം (Priority Sorting)
+        sortedSources.sort((a, b) => {
+          const aLower = a.toLowerCase();
+          const bLower = b.toLowerCase();
+          
+          // മലയാളം എപ്പോഴും ആദ്യം
+          if (aLower.includes('malayalam')) return -1;
+          if (bLower.includes('malayalam')) return 1;
+
+          // മറ്റ് ഇന്ത്യൻ ഭാഷകൾ അടുത്തത്
+          const aIsPriority = PRIORITY_SOURCES.some(p => aLower.includes(p));
+          const bIsPriority = PRIORITY_SOURCES.some(p => bLower.includes(p));
+          
+          if (aIsPriority && !bIsPriority) return -1;
+          if (!aIsPriority && bIsPriority) return 1;
+
+          // ബാക്കിയുള്ളവ അക്ഷരമാലാക്രമത്തിൽ
+          return a.localeCompare(b);
+        });
+
+        sortedSources.forEach((source, index) => {
           if (source === 'Other') return;
           
-          const sectionTitle = source.replace(/-/g, ' ').toUpperCase();
           const cats = sourcesMap[source];
-          
+          // സെക്ഷൻ ടൈറ്റിൽ മാറ്റുന്നു (ഉദാ: "INDIA & SOUTH ASIA" എന്ന് കാണിക്കാൻ)
+          let sectionTitle = source.replace(/-/g, ' ').toUpperCase();
+          if (index === 0 || PRIORITY_SOURCES.some(p => source.toLowerCase().includes(p))) {
+             if (index === 0 || !html.includes('INDIA & SOUTH ASIA')) {
+                 if (PRIORITY_SOURCES.some(p => source.toLowerCase().includes(p))) {
+                     sectionTitle = "🇮🇳 INDIA & SOUTH ASIA";
+                 }
+             }
+          }
+
           html += `<div style="margin-bottom: 24px;">
             <div class="section-title">${sectionTitle}</div>
             <div class="category-grid">`;
             
-          Object.keys(cats).sort().forEach(cat => {
+          // ഓരോ സെക്ഷനിലും മലയാളം ആദ്യം വരാൻ
+          let sortedCats = Object.keys(cats).sort((a, b) => {
+            if (a.toLowerCase().includes('malayalam')) return -1;
+            if (b.toLowerCase().includes('malayalam')) return 1;
+            return a.localeCompare(b);
+          });
+            
+          sortedCats.forEach(cat => {
             const count = cats[cat];
             const catName = cat.charAt(0).toUpperCase() + cat.slice(1);
+            // മലയാളം ഹൈലൈറ്റ് ചെയ്യാൻ
+            const isMalayalam = catName.toLowerCase().includes('malayalam');
+            const highlightStyle = isMalayalam ? 'style="border-color: var(--accent); background: #fffcfc;"' : '';
+            
             html += `
-              <div class="category-card" onclick="openCategory('${cat}', '${source}', '${catName}')">
-                <div class="cat-name">${catName}</div>
-                <div class="cat-meta">${source} • ${count} stations</div>
+              <div class="category-card" ${highlightStyle} onclick="openCategory('${cat}', '${source}', '${catName}')">
+                <div class="cat-name">${isMalayalam ? '🌟 ' : ''}${catName}</div>
+                <div class="cat-meta">${count} stations</div>
               </div>
             `;
           });
@@ -469,17 +516,14 @@
         dynamicCategoriesContainer.innerHTML = html;
       }
 
-      // 🛠️ ഇവിടെയാണ് പ്രധാന മാറ്റം വരുത്തിയിരിക്കുന്നത്
       window.openCategory = function(category, source, displayName) {
         currentCategory = category;
         searchQuery = '';
         searchInput.value = '';
 
-        // "Every Station" ആണെങ്കിൽ എല്ലാം കാണിക്കുക
         if (category === 'all') {
           displayStations = [...allStations];
         } else {
-          // മറ്റുള്ളവയ്ക്ക് കൃത്യമായി ഫിൽട്ടർ ചെയ്യുക
           displayStations = allStations.filter(st => {
             const matchCat = st.category === category;
             const matchSrc = source === 'all' || st._source === source;

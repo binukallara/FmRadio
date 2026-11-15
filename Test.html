@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Premium Live Radio Player</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+  <style>
+    :root {
+      --bg: #f7f5f0;
+      --surface: #ffffff;
+      --surface-2: #f0ece1;
+      --primary: #6c5ce7;
+      --primary-light: #f3e8f8;
+      --accent: #fd79a8;
+      --text: #1a1a1a;
+      --text-muted: #666666;
+      --border: #dcd6c8;
+      --shadow: 0 4px 12px rgba(0,0,0,0.06);
+      --radius: 12px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    [data-theme="dark"] {
+      --bg: #121212;
+      --surface: #1e1e24;
+      --surface-2: #2a2a32;
+      --primary: #8c7ae6;
+      --primary-light: #2c2541;
+      --accent: #ff7675;
+      --text: #f5f6fa;
+      --text-muted: #a4b0be;
+      --border: #353b48;
+      --shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* Header */
+    .app-header {
+      padding: 14px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .app-header h1 { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .icon-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .icon-btn:hover { border-color: var(--primary); }
+    .icon-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    .view { display: none; flex: 1; overflow-y: auto; }
+    .view.active { display: flex; flex-direction: column; }
+
+    /* Home View */
+    .home-content {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      max-width: 850px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Global Search */
+    .global-search {
+      position: relative;
+    }
+    .global-search input {
+      width: 100%; padding: 14px 16px 14px 44px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); border-radius: var(--radius);
+      font-size: 1rem; outline: none; box-shadow: var(--shadow);
+    }
+    .global-search input:focus { border-color: var(--primary); }
+    .global-search::before {
+      content: "🔍"; position: absolute; left: 16px; top: 50%;
+      transform: translateY(-50%); font-size: 1.1rem; opacity: 0.6;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Horizontal Scroll Row (Recent & Favorites) */
+    .horizontal-scroll {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      scrollbar-width: thin;
+    }
+    .mini-card {
+      min-width: 140px;
+      max-width: 140px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .mini-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+    .mini-card.active { border-color: var(--primary); background: var(--primary-light); }
+    .mini-card .mini-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff; font-weight: 700; display: flex;
+      align-items: center; justify-content: center; overflow: hidden;
+    }
+    .mini-card .mini-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .mini-card .mini-name {
+      font-size: 0.85rem; font-weight: 600; width: 100%;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .category-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .category-card:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow);
+    }
+    .category-card.highlight {
+      border-color: var(--accent);
+      background: var(--primary-light);
+    }
+    .category-card .cat-name {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .category-card .cat-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* List View */
+    .list-header {
+      padding: 16px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .back-btn {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 0;
+    }
+    .list-title { font-size: 1.35rem; font-weight: 700; margin-top: 6px; }
+    .list-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; }
+
+    .search-box { margin-top: 12px; position: relative; }
+    .search-box input {
+      width: 100%; padding: 10px 16px 10px 38px;
+      background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px; font-size: 0.95rem; outline: none;
+    }
+    .search-box input:focus { border-color: var(--primary); }
+    .search-box::before {
+      content: "🔍"; position: absolute; left: 12px; top: 50%;
+      transform: translateY(-50%); font-size: 0.95rem; opacity: 0.5;
+    }
+
+    /* Genre Filter Chips */
+    .genre-filters {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      margin-top: 12px;
+      padding-bottom: 4px;
+    }
+    .genre-chip {
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .genre-chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .station-list {
+      padding: 12px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .station-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px; border-radius: var(--radius);
+      background: var(--surface); border: 1px solid var(--border);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .station-item:hover { border-color: var(--primary); }
+    .station-item.active { border-color: var(--primary); background: var(--primary-light); }
+
+    .station-item .avatar {
+      width: 46px; height: 46px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; font-weight: 700; color: #fff; flex-shrink: 0;
+      overflow: hidden;
+    }
+    .station-item .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .station-item .info { flex: 1; min-width: 0; }
+    .station-item .info .name {
+      font-size: 1rem; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .station-item .info .meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; text-transform: capitalize; }
+    
+    .fav-btn {
+      background: none; border: none; font-size: 1.3rem;
+      cursor: pointer; padding: 6px; border-radius: 50%;
+      transition: transform 0.15s; flex-shrink: 0;
+    }
+    .fav-btn:active { transform: scale(1.3); }
+
+    /* Bottom Player */
+    .bottom-player {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+      z-index: 100;
+    }
+    
+    .now-playing-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .np-text { flex: 1; min-width: 0; }
+    .np-name { font-size: 1rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .np-status { font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #00b894; }
+    .status-dot.error { background: #e74c3c; }
+
+    /* Equalizer Visualizer */
+    .equalizer {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 18px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .equalizer.playing { opacity: 1; }
+    .equalizer span {
+      width: 3px;
+      background: var(--primary);
+      border-radius: 2px;
+      animation: eq 0.8s infinite ease-in-out alternate;
+    }
+    .equalizer span:nth-child(1) { height: 6px; animation-delay: 0.1s; }
+    .equalizer span:nth-child(2) { height: 14px; animation-delay: 0.3s; }
+    .equalizer span:nth-child(3) { height: 10px; animation-delay: 0.2s; }
+    .equalizer span:nth-child(4) { height: 16px; animation-delay: 0.4s; }
+    @keyframes eq { 0% { height: 4px; } 100% { height: 18px; } }
+
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+    }
+    .ctrl-btn {
+      background: none; border: none; font-size: 1.5rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      color: var(--text); transition: transform 0.1s;
+    }
+    .ctrl-btn:active { transform: scale(0.9); }
+    .ctrl-btn.play-pause {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--primary); color: #fff;
+      box-shadow: 0 4px 12px rgba(108, 92, 231, 0.35);
+      font-size: 1.4rem;
+    }
+
+    .volume-row {
+      display: flex; align-items: center; gap: 12px;
+      max-width: 400px; margin: 0 auto; width: 100%;
+    }
+    .volume-row span { font-size: 1.1rem; cursor: pointer; }
+    .volume-slider {
+      flex: 1; -webkit-appearance: none; height: 4px;
+      border-radius: 2px; background: var(--surface-2); outline: none;
+    }
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 16px; height: 16px;
+      border-radius: 50%; background: var(--primary); cursor: pointer;
+    }
+
+    /* Sleep Timer Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: none; align-items: center; justify-content: center; z-index: 2000;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; width: 90%; max-width: 340px;
+      box-shadow: var(--shadow);
+    }
+    .modal-card h3 { margin-bottom: 12px; font-size: 1.1rem; }
+    .timer-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .timer-btn {
+      padding: 10px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface-2); color: var(--text); font-weight: 600; cursor: pointer;
+    }
+    .timer-btn:hover { border-color: var(--primary); }
+    .modal-close {
+      width: 100%; padding: 10px; border-radius: 8px; border: none;
+      background: var(--primary); color: #fff; font-weight: 600; cursor: pointer;
+    }
+
+    /* Loading Overlay */
+    .loading-overlay {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 20px; z-index: 1000; transition: all 0.4s;
+    }
+    .loading-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .spinner { width: 48px; height: 48px; border: 4px solid var(--surface-2); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <p id="loadingText">സ്റ്റേഷനുകൾ ലോഡ് ചെയ്യുന്നു...</p>
+  </div>
+
+  <!-- Sleep Timer Modal -->
+  <div class="modal-backdrop" id="timerModal">
+    <div class="modal-card">
+      <h3>⏰ Sleep Timer</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;" id="timerStatusText">Select duration to auto-stop radio:</p>
+      <div class="timer-options">
+        <button class="timer-btn" onclick="setSleepTimer(15)">15 Mins</button>
+        <button class="timer-btn" onclick="setSleepTimer(30)">30 Mins</button>
+        <button class="timer-btn" onclick="setSleepTimer(45)">45 Mins</button>
+        <button class="timer-btn" onclick="setSleepTimer(60)">60 Mins</button>
+        <button class="timer-btn" style="grid-column: span 2; color: #e74c3c;" onclick="setSleepTimer(0)">Turn Off Timer</button>
+      </div>
+      <button class="modal-close" onclick="closeTimerModal()">Close</button>
+    </div>
+  </div>
+
+  <div class="app-container">
+    
+    <header class="app-header">
+      <h1>📻 Live Radio</h1>
+      <div class="header-actions">
+        <button class="icon-btn" id="sleepTimerBtn" onclick="openTimerModal()">⏰ <span id="timerBadge">Sleep</span></button>
+        <button class="icon-btn" id="themeToggleBtn" onclick="toggleTheme()">🌙</button>
+      </div>
+    </header>
+
+    <!-- HOME VIEW -->
+    <div class="view active" id="homeView">
+      <div class="home-content">
+        
+        <!-- Global Search -->
+        <div class="global-search">
+          <input type="text" id="globalSearchInput" placeholder="Search any station across all languages...">
+        </div>
+
+        <!-- Favorites Section -->
+        <div id="favoritesSection" style="display: none;">
+          <div class="section-title">❤️ Favorite Stations</div>
+          <div class="horizontal-scroll" id="favoritesList"></div>
+        </div>
+
+        <!-- Recently Played Section -->
+        <div id="recentSection" style="display: none;">
+          <div class="section-title">🕒 Recently Played</div>
+          <div class="horizontal-scroll" id="recentList"></div>
+        </div>
+
+        <!-- Quick Collections -->
+        <div>
+          <div class="section-title">Quick Access</div>
+          <div class="category-grid">
+            <div class="category-card" onclick="openLanguage('all', 'Every Station')">
+              <div class="cat-name">🌐 Every Station</div>
+              <div class="cat-meta" id="totalStationsCount">0 stations</div>
+            </div>
+            <div class="category-card" onclick="openLanguage('favorites', 'My Favorites')">
+              <div class="cat-name">❤️ Saved Favorites</div>
+              <div class="cat-meta" id="favCountMeta">0 stations</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="dynamicCategoriesContainer"></div>
+
+      </div>
+    </div>
+
+    <!-- LIST VIEW -->
+    <div class="view" id="listView">
+      <div class="list-header">
+        <button class="back-btn" onclick="goHome()">← Back to Home</button>
+        <div class="list-title" id="currentCategoryTitle">All Stations</div>
+        <div class="list-subtitle" id="currentCategorySubtitle">0 stations</div>
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="Search in this list...">
+        </div>
+        <div class="genre-filters" id="genreFilters"></div>
+      </div>
+      <div class="station-list" id="stationList"></div>
+    </div>
+
+    <!-- BOTTOM PLAYER -->
+    <div class="bottom-player">
+      <div class="now-playing-info">
+        <div class="np-text">
+          <div class="np-name" id="npName">Select a station</div>
+          <div class="np-status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="npStatus">Ready</span>
+          </div>
+        </div>
+        <div class="equalizer" id="equalizer">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <button class="fav-btn" id="npFavBtn" title="Toggle Favorite" style="display:none;">🤍</button>
+      </div>
+      <div class="controls-row">
+        <button class="ctrl-btn" id="prevBtn">⏮</button>
+        <button class="ctrl-btn play-pause" id="playPauseBtn">▶</button>
+        <button class="ctrl-btn" id="nextBtn">⏭</button>
+      </div>
+      <div class="volume-row">
+        <span id="muteBtn">🔊</span>
+        <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.01" value="0.8">
+      </div>
+    </div>
+
+  </div>
+
+  <audio id="audioPlayer" preload="none"></audio>
+
+  <script>
+    (function() {
+      'use strict';
+
+      const GITHUB_BASE = 'https://raw.githubusercontent.com/ranjithkannankattil/ranjithkannankattil.github.io/main/js/stations/';
+      const CACHE_KEY = 'radio_stations_cache_v1';
+      const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 Hours
+
+      const STATION_FILES = [
+        'afrikaans.js', 'akan.js', 'albanian.js', 'amharic.js', 'arabic.js', 'azerbaijani.js', 
+        'bambara.js', 'bengali.js', 'bhojpuri.js', 'bosnian.js', 'bulgarian.js', 'cantonese.js', 
+        'catalan.js', 'chichewa.js', 'chinese.js', 'croatian.js', 'czech.js', 'danish.js', 
+        'dutch.js', 'english-music.js', 'english-news.js', 'english-talk.js', 'estonian.js', 
+        'filipino.js', 'finnish.js', 'french.js', 'german.js', 'greek.js', 'hebrew.js', 
+        'hindi.js', 'hungarian.js', 'indonesian.js', 'italian.js', 'japanese.js', 'kannada.js', 
+        'kazakh.js', 'korean.js', 'kurdish.js', 'latvian.js', 'lithuanian.js', 'luganda.js', 
+        'macedonian.js', 'malay.js', 'malayalam.js', 'more-african.js', 'more-indian.js', 
+        'nepali.js', 'norwegian.js', 'odia.js', 'persian.js', 'polish.js', 'portuguese-brazil.js', 
+        'portuguese-portugal.js', 'punjabi.js', 'romanian.js', 'russian.js', 'serbian.js', 
+        'sinhala.js', 'slovak.js', 'slovenian.js', 'south-african.js', 'spanish-latam.js', 
+        'spanish-spain.js', 'swahili.js', 'swedish.js', 'tamil.js', 'telugu.js', 'thai.js', 
+        'turkish.js', 'ukrainian.js', 'urdu.js', 'vietnamese.js', 'yoruba-hausa.js'
+      ];
+
+      const PRIORITY_LANGUAGES = [
+        'malayalam', 'hindi', 'tamil', 'telugu', 'kannada', 'bengali', 'punjabi', 
+        'urdu', 'bhojpuri', 'odia', 'nepali', 'sinhala'
+      ];
+
+      let allStations = [];
+      let baseCategoryStations = [];
+      let displayStations = [];
+      let currentStation = null;
+      let currentStreamIndex = 0;
+      let hls = null;
+      let isPlaying = false;
+      let currentCategory = 'all';
+      let activeGenre = 'All';
+      let searchQuery = '';
+      let reconnectTimer = null;
+
+      // User Saved Data
+      let favoriteIds = JSON.parse(localStorage.getItem('radio_favorites') || '[]');
+      let recentIds = JSON.parse(localStorage.getItem('radio_recent') || '[]');
+
+      // Sleep Timer
+      let sleepTimeout = null;
+      let sleepInterval = null;
+      let sleepEndTime = null;
+
+      // DOM Elements
+      const audio = document.getElementById('audioPlayer');
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      const loadingText = document.getElementById('loadingText');
+      const homeView = document.getElementById('homeView');
+      const listView = document.getElementById('listView');
+      const dynamicCategoriesContainer = document.getElementById('dynamicCategoriesContainer');
+      const stationListEl = document.getElementById('stationList');
+      const searchInput = document.getElementById('searchInput');
+      const globalSearchInput = document.getElementById('globalSearchInput');
+      const genreFiltersEl = document.getElementById('genreFilters');
+      const currentCategoryTitle = document.getElementById('currentCategoryTitle');
+      const currentCategorySubtitle = document.getElementById('currentCategorySubtitle');
+      
+      const npName = document.getElementById('npName');
+      const npStatus = document.getElementById('npStatus');
+      const statusDot = document.getElementById('statusDot');
+      const equalizer = document.getElementById('equalizer');
+      const npFavBtn = document.getElementById('npFavBtn');
+      const playPauseBtn = document.getElementById('playPauseBtn');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const muteBtn = document.getElementById('muteBtn');
+      const volumeSlider = document.getElementById('volumeSlider');
+
+      // --- THEME (DARK MODE) ---
+      function initTheme() {
+        const savedTheme = localStorage.getItem('radio_theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('themeToggleBtn').textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+      }
+      window.toggleTheme = function() {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('radio_theme', next);
+        document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️' : '🌙';
+      };
+
+      // --- SLEEP TIMER ---
+      window.openTimerModal = () => document.getElementById('timerModal').classList.add('active');
+      window.closeTimerModal = () => document.getElementById('timerModal').classList.remove('active');
+      
+      window.setSleepTimer = function(minutes) {
+        clearTimeout(sleepTimeout);
+        clearInterval(sleepInterval);
+        const btn = document.getElementById('sleepTimerBtn');
+        const badge = document.getElementById('timerBadge');
+        const statusText = document.getElementById('timerStatusText');
+
+        if (minutes === 0) {
+          sleepEndTime = null;
+          btn.classList.remove('active');
+          badge.textContent = 'Sleep';
+          statusText.textContent = 'Timer turned off.';
+          closeTimerModal();
+          return;
+        }
+
+        sleepEndTime = Date.now() + minutes * 60 * 1000;
+        btn.classList.add('active');
+        
+        const updateTimerDisplay = () => {
+          const remaining = Math.max(0, sleepEndTime - Date.now());
+          const mins = Math.ceil(remaining / 60000);
+          badge.textContent = `${mins}m`;
+          statusText.textContent = `Radio will stop in ${mins} minute(s).`;
+        };
+        updateTimerDisplay();
+        sleepInterval = setInterval(updateTimerDisplay, 15000);
+
+        sleepTimeout = setTimeout(() => {
+          if (isPlaying) togglePlayPause();
+          setSleepTimer(0);
+          setStatus('Stopped by Sleep Timer');
+        }, minutes * 60 * 1000);
+
+        closeTimerModal();
+      };
+
+      // --- STATUS & VISUALIZER ---
+      function setStatus(text, isError = false) {
+        npStatus.textContent = text;
+        statusDot.classList.toggle('error', isError);
+        equalizer.classList.toggle('playing', isPlaying && !isError);
+      }
+
+      // --- CACHING & STATION LOADING ---
+      async function loadAllStations() {
+        try {
+          const cached = JSON.parse(localStorage.getItem(CACHE_KEY));
+          if (cached && (Date.now() - cached.timestamp < CACHE_EXPIRY_MS) && Array.isArray(cached.data)) {
+            loadingText.textContent = 'Loading from fast cache...';
+            return cached.data;
+          }
+        } catch (e) {}
+
+        const loadedStations = [];
+        let processedCount = 0;
+        
+        const fetchPromises = STATION_FILES.map(async (fileName) => {
+          try {
+            const response = await fetch(GITHUB_BASE + fileName);
+            if (!response.ok) throw new Error();
+            const scriptText = await response.text();
+            
+            let fileStations = null;
+            try {
+              const fn = new Function('window', `${scriptText} return window.STATIONS || (typeof STATIONS !== 'undefined' ? STATIONS : null);`);
+              fileStations = fn({});
+            } catch (e) {}
+
+            if (Array.isArray(fileStations)) {
+              const sourceName = fileName.replace('.js', '').replace(/-/g, ' ');
+              loadedStations.push(...fileStations.map(st => ({ ...st, _source: sourceName })));
+            }
+          } catch (err) {
+            console.warn(`Failed ${fileName}`);
+          } finally {
+            processedCount++;
+            loadingText.textContent = `Loading stations... (${processedCount}/${STATION_FILES.length})`;
+          }
+        });
+
+        await Promise.all(fetchPromises);
+        
+        if (loadedStations.length > 0) {
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: loadedStations }));
+          } catch (e) {}
+        }
+        return loadedStations;
+      }
+
+      // --- FAVORITES & RECENTLY PLAYED ---
+      function toggleFavorite(stationId, event) {
+        if (event) event.stopPropagation();
+        const idx = favoriteIds.indexOf(stationId);
+        if (idx === -1) {
+          favoriteIds.unshift(stationId);
+        } else {
+          favoriteIds.splice(idx, 1);
+        }
+        localStorage.setItem('radio_favorites', JSON.stringify(favoriteIds));
+        updateFavoriteUI();
+      }
+
+      function addToRecent(stationId) {
+        recentIds = recentIds.filter(id => id !== stationId);
+        recentIds.unshift(stationId);
+        if (recentIds.length > 10) recentIds.pop();
+        localStorage.setItem('radio_recent', JSON.stringify(recentIds));
+        renderHomeHorizontalLists();
+      }
+
+      function updateFavoriteUI() {
+        document.getElementById('favCountMeta').textContent = `${favoriteIds.length} stations`;
+        if (currentStation) {
+          npFavBtn.style.display = 'block';
+          npFavBtn.textContent = favoriteIds.includes(currentStation.id) ? '❤️' : '🤍';
+        }
+        renderHomeHorizontalLists();
+        if (listView.classList.contains('active')) {
+          if (currentCategory === 'favorites') {
+            baseCategoryStations = allStations.filter(st => favoriteIds.includes(st.id));
+          }
+          applyFiltersAndRenderList();
+        }
+      }
+
+      function renderHomeHorizontalLists() {
+        // Favorites Strip
+        const favSection = document.getElementById('favoritesSection');
+        const favListEl = document.getElementById('favoritesList');
+        const favStations = favoriteIds.map(id => allStations.find(s => s.id === id)).filter(Boolean);
+        
+        if (favStations.length > 0) {
+          favSection.style.display = 'block';
+          favListEl.innerHTML = favStations.map(st => createMiniCardHtml(st)).join('');
+        } else {
+          favSection.style.display = 'none';
+        }
+
+        // Recent Strip
+        const recSection = document.getElementById('recentSection');
+        const recListEl = document.getElementById('recentList');
+        const recStations = recentIds.map(id => allStations.find(s => s.id === id)).filter(Boolean);
+
+        if (recStations.length > 0) {
+          recSection.style.display = 'block';
+          recListEl.innerHTML = recStations.map(st => createMiniCardHtml(st)).join('');
+        } else {
+          recSection.style.display = 'none';
+        }
+      }
+
+      function createMiniCardHtml(st) {
+        const isActive = currentStation && currentStation.id === st.id;
+        const avatarContent = st.logo 
+          ? `<img src="${st.logo}" onerror="this.style.display='none'; this.parentElement.textContent='${st.name.charAt(0).toUpperCase()}'">`
+          : st.name.charAt(0).toUpperCase();
+        return `
+          <div class="mini-card ${isActive ? 'active' : ''}" onclick="playStationById('${st.id}')">
+            <div class="mini-avatar">${avatarContent}</div>
+            <div class="mini-name">${st.name}</div>
+          </div>
+        `;
+      }
+
+      window.playStationById = function(id) {
+        const st = allStations.find(s => s.id === id);
+        if (st) selectStation(st);
+      };
+
+      // --- HOME PAGE RENDER ---
+      function renderHomePage() {
+        document.getElementById('totalStationsCount').textContent = `${allStations.length} stations`;
+        updateFavoriteUI();
+
+        const languageMap = {};
+        allStations.forEach(st => {
+          const lang = st._source || 'Other';
+          languageMap[lang] = (languageMap[lang] || 0) + 1;
+        });
+
+        let sortedLanguages = Object.keys(languageMap).sort((a, b) => {
+          const aLower = a.toLowerCase();
+          const bLower = b.toLowerCase();
+          if (aLower.includes('malayalam')) return -1;
+          if (bLower.includes('malayalam')) return 1;
+
+          const aIsPriority = PRIORITY_LANGUAGES.some(p => aLower.includes(p));
+          const bIsPriority = PRIORITY_LANGUAGES.some(p => bLower.includes(p));
+          if (aIsPriority && !bIsPriority) return -1;
+          if (!aIsPriority && bIsPriority) return 1;
+
+          return a.localeCompare(b);
+        });
+
+        let indiaHtml = '';
+        let otherHtml = '';
+
+        sortedLanguages.forEach(lang => {
+          const count = languageMap[lang];
+          let displayName = lang.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+          const isIndian = PRIORITY_LANGUAGES.some(p => lang.toLowerCase().includes(p));
+          const isMalayalam = lang.toLowerCase().includes('malayalam');
+          
+          const cardHtml = `
+            <div class="category-card ${isMalayalam ? 'highlight' : ''}" onclick="openLanguage('${lang}', '${displayName}')">
+              <div class="cat-name">${isMalayalam ? '🌟 ' : ''}${displayName}</div>
+              <div class="cat-meta">${count} stations</div>
+            </div>
+          `;
+
+          if (isIndian || isMalayalam) indiaHtml += cardHtml;
+          else otherHtml += cardHtml;
+        });
+
+        let html = '';
+        if (indiaHtml) {
+          html += `
+            <div style="margin-bottom: 24px;">
+              <div class="section-title">🇮🇳 INDIA & SOUTH ASIA</div>
+              <div class="category-grid">${indiaHtml}</div>
+            </div>
+          `;
+        }
+        if (otherHtml) {
+          html += `
+            <div style="margin-bottom: 24px;">
+              <div class="section-title">🌍 WORLDWIDE LANGUAGES</div>
+              <div class="category-grid">${otherHtml}</div>
+            </div>
+          `;
+        }
+        dynamicCategoriesContainer.innerHTML = html;
+      }
+
+      // --- NAVIGATION & SAFE BACK HANDLING ---
+      window.openLanguage = function(lang, displayName, initialSearch = '') {
+        currentCategory = lang;
+        activeGenre = 'All';
+        searchQuery = initialSearch.toLowerCase();
+        searchInput.value = initialSearch;
+
+        if (lang === 'all') {
+          baseCategoryStations = [...allStations];
+        } else if (lang === 'favorites') {
+          baseCategoryStations = allStations.filter(st => favoriteIds.includes(st.id));
+        } else {
+          baseCategoryStations = allStations.filter(st => st._source === lang);
+        }
+
+        currentCategoryTitle.textContent = displayName;
+        buildGenreChips(baseCategoryStations);
+        applyFiltersAndRenderList();
+        
+        history.pushState({ view: 'list', lang: lang, title: displayName }, '', '?lang=' + encodeURIComponent(lang));
+        
+        homeView.classList.remove('active');
+        listView.classList.add('active');
+        listView.scrollTop = 0;
+      };
+
+      window.goHome = function() {
+        if (history.state && history.state.view === 'list') {
+          history.back();
+        } else {
+          showHomeDirectly();
+        }
+      };
+
+      function showHomeDirectly() {
+        listView.classList.remove('active');
+        homeView.classList.add('active');
+        globalSearchInput.value = '';
+        renderHomeHorizontalLists();
+        history.replaceState({ view: 'home' }, '', window.location.pathname);
+      }
+
+      window.addEventListener('popstate', function(event) {
+        if (event.state && event.state.view === 'list') {
+          const lang = event.state.lang;
+          const title = event.state.title || 'Stations';
+          currentCategory = lang;
+          if (lang === 'all') baseCategoryStations = [...allStations];
+          else if (lang === 'favorites') baseCategoryStations = allStations.filter(st => favoriteIds.includes(st.id));
+          else baseCategoryStations = allStations.filter(st => st._source === lang);
+
+          currentCategoryTitle.textContent = title;
+          buildGenreChips(baseCategoryStations);
+          applyFiltersAndRenderList();
+
+          homeView.classList.remove('active');
+          listView.classList.add('active');
+        } else {
+          listView.classList.remove('active');
+          homeView.classList.add('active');
+          renderHomeHorizontalLists();
+        }
+      });
+
+      // --- GENRE FILTERS & STATION LIST ---
+      function buildGenreChips(stations) {
+        const categories = new Set(['All']);
+        stations.forEach(s => {
+          if (s.category) categories.add(s.category.trim());
+        });
+
+        if (categories.size <= 2) {
+          genreFiltersEl.innerHTML = '';
+          return;
+        }
+
+        genreFiltersEl.innerHTML = Array.from(categories).map(cat => `
+          <button class="genre-chip ${cat === activeGenre ? 'active' : ''}" onclick="setGenreFilter('${cat}')">${cat}</button>
+        `).join('');
+      }
+
+      window.setGenreFilter = function(genre) {
+        activeGenre = genre;
+        document.querySelectorAll('.genre-chip').forEach(chip => {
+          chip.classList.toggle('active', chip.textContent === genre);
+        });
+        applyFiltersAndRenderList();
+      };
+
+      function applyFiltersAndRenderList() {
+        displayStations = baseCategoryStations.filter(st => {
+          const matchesGenre = activeGenre === 'All' || (st.category && st.category.toLowerCase() === activeGenre.toLowerCase());
+          const matchesSearch = !searchQuery || 
+            st.name.toLowerCase().includes(searchQuery) || 
+            (st._source && st._source.toLowerCase().includes(searchQuery));
+          return matchesGenre && matchesSearch;
+        });
+
+        currentCategorySubtitle.textContent = `${displayStations.length} stations`;
+        renderStationList(displayStations);
+      }
+
+      function renderStationList(stations) {
+        if (stations.length === 0) {
+          stationListEl.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">No stations found</div>';
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        stations.sort((a,b) => a.name.localeCompare(b.name)).forEach(station => {
+          const div = document.createElement('div');
+          div.className = 'station-item';
+          div.dataset.id = station.id;
+          if (currentStation && currentStation.id === station.id) div.classList.add('active');
+
+          const isFav = favoriteIds.includes(station.id);
+          const avatarHtml = station.logo 
+            ? `<img src="${station.logo}" alt="" onerror="this.style.display='none'; this.parentElement.textContent='${station.name.charAt(0).toUpperCase()}'">`
+            : station.name.charAt(0).toUpperCase();
+
+          div.innerHTML = `
+            <div class="avatar">${avatarHtml}</div>
+            <div class="info">
+              <div class="name">${station.name}</div>
+              <div class="meta">${station._source} • ${station.category || 'Radio'}</div>
+            </div>
+            <button class="fav-btn" title="Favorite">${isFav ? '❤️' : '🤍'}</button>
+          `;
+          
+          div.querySelector('.fav-btn').addEventListener('click', (e) => {
+            toggleFavorite(station.id, e);
+            e.target.textContent = favoriteIds.includes(station.id) ? '❤️' : '🤍';
+          });
+
+          div.addEventListener('click', () => selectStation(station));
+          fragment.appendChild(div);
+        });
+
+        stationListEl.innerHTML = '';
+        stationListEl.appendChild(fragment);
+      }
+
+      // --- AUDIO PLAYBACK, AUTO-RECONNECT & MEDIA SESSION ---
+      function selectStation(station) {
+        if (currentStation && currentStation.id === station.id) {
+          togglePlayPause();
+          return;
+        }
+
+        stopPlayback();
+        currentStation = station;
+        currentStreamIndex = 0;
+        
+        npName.textContent = station.name;
+        npFavBtn.style.display = 'block';
+        npFavBtn.textContent = favoriteIds.includes(station.id) ? '❤️' : '🤍';
+        setStatus('Loading...');
+
+        addToRecent(station.id);
+        updateMediaSession(station);
+
+        document.querySelectorAll('.station-item, .mini-card').forEach(el => el.classList.remove('active'));
+        const activeEl = stationListEl.querySelector(`[data-id="${station.id}"]`);
+        if (activeEl) activeEl.classList.add('active');
+
+        tryPlayStream();
+      }
+
+      function tryPlayStream() {
+        if (!currentStation) return;
+        clearTimeout(reconnectTimer);
+        const streams = currentStation.streams;
+        
+        if (!streams || streams.length === 0 || currentStreamIndex >= streams.length) {
+          setStatus('Stream Offline', true);
+          isPlaying = false;
+          playPauseBtn.textContent = '▶';
+          return;
+        }
+
+        const streamUrl = streams[currentStreamIndex];
+        setStatus('Connecting...');
+
+        if (hls) { hls.destroy(); hls = null; }
+
+        const isHls = streamUrl.includes('.m3u8');
+
+        if (isHls) {
+          if (window.Hls && Hls.isSupported()) {
+            hls = new Hls({ enableWorker: true });
+            hls.loadSource(streamUrl);
+            hls.attachMedia(audio);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => audio.play().catch(() => setStatus('Tap Play', true)));
+            hls.on(Hls.Events.ERROR, (e, d) => { if (d.fatal) handleStreamError(); });
+          } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
+            audio.src = streamUrl;
+            audio.play().catch(() => setStatus('Tap Play', true));
+          } else {
+            handleStreamError();
+          }
+        } else {
+          audio.src = streamUrl;
+          audio.play().catch(() => setStatus('Tap Play', true));
+        }
+
+        setupAudioListeners();
+      }
+
+      function setupAudioListeners() {
+        audio.onplaying = () => {
+          isPlaying = true;
+          setStatus('Live');
+          playPauseBtn.textContent = '⏸';
+          if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+        };
+        audio.onwaiting = () => {
+          if (isPlaying) setStatus('Buffering...');
+        };
+        audio.onerror = () => handleStreamError();
+        audio.onstalled = () => {
+          if (isPlaying) {
+            setStatus('Reconnecting...', true);
+            reconnectTimer = setTimeout(tryPlayStream, 3000);
+          }
+        };
+      }
+
+      function handleStreamError() {
+        currentStreamIndex++;
+        if (currentStation && currentStreamIndex < currentStation.streams.length) {
+          setStatus('Switching backup stream...', true);
+          setTimeout(tryPlayStream, 1000);
+        } else {
+          setStatus('Offline - Retrying in 5s...', true);
+          isPlaying = false;
+          playPauseBtn.textContent = '▶';
+          currentStreamIndex = 0;
+          reconnectTimer = setTimeout(tryPlayStream, 5000);
+        }
+      }
+
+      function stopPlayback() {
+        clearTimeout(reconnectTimer);
+        if (hls) { hls.destroy(); hls = null; }
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
+        isPlaying = false;
+        playPauseBtn.textContent = '▶';
+        equalizer.classList.remove('playing');
+      }
+
+      function togglePlayPause() {
+        if (!currentStation) return;
+        if (isPlaying) {
+          clearTimeout(reconnectTimer);
+          audio.pause();
+          isPlaying = false;
+          playPauseBtn.textContent = '▶';
+          setStatus('Paused');
+          if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+        } else {
+          audio.play().catch(() => tryPlayStream());
+          isPlaying = true;
+          playPauseBtn.textContent = '⏸';
+          setStatus('Live');
+        }
+      }
+
+      // --- LOCK SCREEN CONTROLS (MEDIA SESSION API) ---
+      function updateMediaSession(station) {
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: station.name,
+            artist: `${station._source.toUpperCase()} • Live Radio`,
+            album: station.category || 'Live Stream',
+            artwork: station.logo ? [{ src: station.logo, sizes: '512x512', type: 'image/png' }] : []
+          });
+
+          navigator.mediaSession.setActionHandler('play', () => { if (!isPlaying) togglePlayPause(); });
+          navigator.mediaSession.setActionHandler('pause', () => { if (isPlaying) togglePlayPause(); });
+          navigator.mediaSession.setActionHandler('nexttrack', playNextStation);
+          navigator.mediaSession.setActionHandler('previoustrack', playPrevStation);
+        }
+      }
+
+      function playNextStation() {
+        const list = displayStations.length > 0 ? displayStations : allStations;
+        if (list.length === 0) return;
+        let idx = currentStation ? list.findIndex(s => s.id === currentStation.id) : -1;
+        selectStation(list[(idx + 1) % list.length]);
+      }
+
+      function playPrevStation() {
+        const list = displayStations.length > 0 ? displayStations : allStations;
+        if (list.length === 0) return;
+        let idx = currentStation ? list.findIndex(s => s.id === currentStation.id) : -1;
+        selectStation(list[(idx - 1 + list.length) % list.length]);
+      }
+
+      // --- EVENT LISTENERS ---
+      npFavBtn.addEventListener('click', () => {
+        if (currentStation) toggleFavorite(currentStation.id);
+      });
+
+      playPauseBtn.addEventListener('click', togglePlayPause);
+      nextBtn.addEventListener('click', playNextStation);
+      prevBtn.addEventListener('click', playPrevStation);
+      
+      muteBtn.addEventListener('click', () => {
+        if (audio.volume > 0) {
+          audio.dataset.prevVolume = audio.volume;
+          audio.volume = 0;
+          muteBtn.textContent = '🔇';
+        } else {
+          audio.volume = parseFloat(audio.dataset.prevVolume) || 0.8;
+          muteBtn.textContent = '🔊';
+        }
+        volumeSlider.value = audio.volume;
+      });
+
+      volumeSlider.addEventListener('input', (e) => {
+        audio.volume = e.target.value;
+        muteBtn.textContent = audio.volume === 0 ? '🔇' : '🔊';
+      });
+
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value.toLowerCase();
+        applyFiltersAndRenderList();
+      });
+
+      globalSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.target.value.trim() !== '') {
+          openLanguage('all', `Search: "${e.target.value.trim()}"`, e.target.value.trim());
+        }
+      });
+
+      // --- INITIALIZE APP ---
+      async function init() {
+        initTheme();
+        history.replaceState({ view: 'home' }, '', window.location.pathname);
+
+        allStations = await loadAllStations();
+        if (allStations.length === 0) {
+          loadingOverlay.innerHTML = '<p style="color:red;">Failed to load stations. Please check your internet connection.</p>';
+          return;
+        }
+        
+        audio.volume = 0.8;
+        renderHomePage();
+        loadingOverlay.classList.add('hidden');
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

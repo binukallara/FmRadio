@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head><style>
+@font-face {
+  font-family: "Optimistic";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/fonts/OptimisticAI_VF_Optimized.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Optimistic Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/OptimisticMono_W_TextRegular.woff2") format("woff2");
+}
+:where(html) {
+  font-family: "Optimistic", system-ui, sans-serif;
+}
+:where(code, pre, kbd, samp) {
+  font-family: "Optimistic Mono", ui-monospace, monospace;
+}
+</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Premium Live Radio Player</title>
+<meta name="theme-color" content="#6c5ce7">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Live Radio">
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1202/1202224.png">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+<style>
+:root{--bg:#f7f5f0;--surface:#fff;--surface-2:#f0ece1;--primary:#6c5ce7;--primary-light:#f3e8f8;--accent:#fd79a8;--text:#1a1a1a;--text-muted:#666;--border:#dcd6c8;--shadow:0 4px 12px rgba(0,0,0,.06);--radius:12px;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+[data-theme="dark"]{--bg:#121212;--surface:#1e1e24;--surface-2:#2a2a32;--primary:#8c7ae6;--primary-light:#2c2541;--accent:#ff7675;--text:#f5f6fa;--text-muted:#a4b0be;--border:#353b48;--shadow:0 4px 12px rgba(0,0,0,.3)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;justify-content:center;transition:.3s}
+.app-container{width:100%;max-width:1200px;display:flex;flex-direction:column;height:100vh;position:relative}
+.app-header{padding:14px 20px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.app-header h1{font-size:1.2rem;font-weight:700;display:flex;align-items:center;gap:8px}
+.header-actions{display:flex;align-items:center;gap:10px}
+.icon-btn{background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
+.icon-btn:hover{border-color:var(--primary)} .icon-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.icon-btn.install{background:var(--primary);color:#fff;border-color:var(--primary);display:none}
+.view{display:none;flex:1;overflow-y:auto}.view.active{display:flex;flex-direction:column}
+.home-content{padding:20px;display:flex;flex-direction:column;gap:24px;max-width:850px;margin:0 auto;width:100%}
+.global-search{position:relative}.global-search input{width:100%;padding:14px 16px 14px 44px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);font-size:1rem;outline:none;box-shadow:var(--shadow)}
+.global-search::before{content:"🔍";position:absolute;left:16px;top:50%;transform:translateY(-50%)}
+.section-title{font-size:.75rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:12px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.horizontal-scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px}
+.mini-card{min-width:140px;max-width:140px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;flex-shrink:0}
+.mini-card.active{border-color:var(--primary);background:var(--primary-light)}
+.mini-card .mini-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.mini-card .mini-avatar img{width:100%;height:100%;object-fit:cover}
+.mini-card .mini-name{font-size:.85rem;font-weight:600;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.category-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.category-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;display:flex;flex-direction:column;justify-content:center}
+.category-card:hover{border-color:var(--primary)} .category-card.highlight{border-color:var(--accent);background:var(--primary-light)}
+.category-card .cat-name{font-size:1.05rem;font-weight:600} .category-card .cat-meta{font-size:.85rem;color:var(--text-muted)}
+.list-header{padding:16px 20px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.back-btn{background:none;border:none;color:var(--primary);font-size:.95rem;font-weight:600;cursor:pointer}
+.list-title{font-size:1.35rem;font-weight:700;margin-top:6px}.list-subtitle{font-size:.85rem;color:var(--text-muted)}
+.search-box{margin-top:12px;position:relative}.search-box input{width:100%;padding:10px 16px 10px 38px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;outline:none}
+.search-box::before{content:"🔍";position:absolute;left:12px;top:50%;transform:translateY(-50%)}
+.genre-filters{display:flex;gap:8px;overflow-x:auto;margin-top:12px;padding-bottom:4px}
+.genre-chip{padding:6px 14px;border-radius:20px;background:var(--surface-2);border:1px solid var(--border);font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap}
+.genre-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.station-list{padding:12px 20px;display:flex;flex-direction:column;gap:8px}
+.station-item{display:flex;align-items:center;gap:14px;padding:12px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);cursor:pointer}
+.station-item.active{border-color:var(--primary);background:var(--primary-light)}
+.station-item .avatar{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden}
+.station-item .avatar img{width:100%;height:100%;object-fit:cover}
+.station-item .info{flex:1;min-width:0}.station-item .info .name{font-size:1rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.station-item .info .meta{font-size:.8rem;color:var(--text-muted);text-transform:capitalize}
+.fav-btn{background:none;border:none;font-size:1.3rem;cursor:pointer;padding:6px;flex-shrink:0}
+.share-btn{background:var(--surface-2);border:1px solid var(--border);border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.bottom-player{background:var(--surface);border-top:1px solid var(--border);padding:12px 20px;display:flex;flex-direction:column;gap:10px;box-shadow:0 -4px 12px rgba(0,0,0,.08);z-index:100;cursor:pointer}
+.now-playing-info{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.np-text{flex:1;min-width:0}.np-name{font-size:1rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-status{font-size:.8rem;color:var(--text-muted);display:flex;align-items:center;gap:6px;margin-top:2px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#00b894}.status-dot.error{background:#e74c3c}
+.equalizer{display:flex;align-items:flex-end;gap:3px;height:18px;opacity:0}.equalizer.playing{opacity:1}
+.equalizer span{width:3px;background:var(--primary);border-radius:2px;animation:eq .8s infinite ease-in-out alternate}
+.equalizer span:nth-child(1){height:6px}.equalizer span:nth-child(2){height:14px;animation-delay:.3s}.equalizer span:nth-child(3){height:10px;animation-delay:.2s}.equalizer span:nth-child(4){height:16px;animation-delay:.4s}
+@keyframes eq{0%{height:4px}100%{height:18px}}
+.controls-row{display:flex;align-items:center;justify-content:center;gap:28px}
+.ctrl-btn{background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text)}
+.ctrl-btn.play-pause{width:52px;height:52px;border-radius:50%;background:var(--primary);color:#fff;font-size:1.4rem}
+.volume-row{display:flex;align-items:center;gap:12px;max-width:400px;margin:0 auto;width:100%}
+.volume-slider{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--surface-2);outline:none}
+.volume-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--primary);cursor:pointer}
+/* FULL PLAYER */
+.full-player{position:fixed;inset:0;background:var(--bg);z-index:1500;display:none;flex-direction:column;overflow-y:auto}
+.full-player.open{display:flex}
+.fp-top{padding:14px 20px;display:flex;justify-content:space-between;align-items:center}
+.fp-close{background:var(--surface-2);border:1px solid var(--border);width:40px;height:40px;border-radius:50%;font-size:1.2rem;cursor:pointer;color:var(--text)}
+.fp-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:18px;text-align:center;max-width:500px;margin:0 auto;width:100%}
+.fp-art{width:220px;height:220px;border-radius:28px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:5rem;font-weight:800;color:#fff;box-shadow:0 20px 40px rgba(108,92,231,.35);overflow:hidden}
+.fp-art img{width:100%;height:100%;object-fit:cover}
+.fp-name{font-size:1.6rem;font-weight:800;line-height:1.2}.fp-meta{color:var(--text-muted);font-size:.95rem;text-transform:capitalize}
+.fp-eq{display:flex;align-items:flex-end;gap:5px;height:36px;opacity:0}.fp-eq.playing{opacity:1}
+.fp-eq span{width:5px;background:linear-gradient(var(--primary),var(--accent));border-radius:3px;animation:eq2 .7s infinite ease-in-out alternate}
+.fp-eq span:nth-child(1){height:10px}.fp-eq span:nth-child(2){height:28px;animation-delay:.15s}.fp-eq span:nth-child(3){height:18px;animation-delay:.3s}.fp-eq span:nth-child(4){height:34px;animation-delay:.1s}.fp-eq span:nth-child(5){height:20px;animation-delay:.25s}.fp-eq span:nth-child(6){height:28px;animation-delay:.05s}
+@keyframes eq2{0%{height:6px}100%{height:36px}}
+.fp-controls{display:flex;align-items:center;gap:32px;margin-top:6px}
+.fp-play{width:72px;height:72px;border-radius:50%;background:var(--primary);color:#fff;border:none;font-size:1.8rem;cursor:pointer;box-shadow:0 8px 20px rgba(108,92,231,.4)}
+.fp-side{width:52px;height:52px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);font-size:1.4rem;cursor:pointer;color:var(--text)}
+.fp-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.fp-action{padding:10px 18px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-weight:600;cursor:pointer;font-size:.9rem}
+.fp-action.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+.fp-volume{width:100%;max-width:340px;display:flex;align-items:center;gap:12px}
+.fp-hint{font-size:.8rem;color:var(--text-muted)}
+/* MODAL / TOAST */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:2000}
+.modal-backdrop.active{display:flex}
+.modal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;width:90%;max-width:380px;box-shadow:var(--shadow)}
+.modal-card h3{margin-bottom:12px}.timer-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.timer-btn{padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-weight:600;cursor:pointer}
+.modal-close{width:100%;padding:10px;border-radius:8px;border:none;background:var(--primary);color:#fff;font-weight:600;cursor:pointer}
+.share-link-box{display:flex;gap:8px;margin:12px 0}.share-link-box input{flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:.85rem}
+.share-link-box button{padding:10px 14px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer}
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);background:#1a1a1a;color:#fff;padding:12px 18px;border-radius:999px;font-size:.9rem;font-weight:600;z-index:3000;opacity:0;pointer-events:none;transition:.3s;max-width:90%;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:1000}
+.loading-overlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
+.spinner{width:48px;height:48px;border:4px solid var(--surface-2);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.install-banner{background:var(--primary);color:#fff;padding:10px 16px;display:none;align-items:center;justify-content:space-between;gap:12px;font-size:.9rem;font-weight:600}
+.install-banner.show{display:flex}.install-banner button{background:#fff;color:#6c5ce7;border:none;padding:8px 14px;border-radius:999px;font-weight:800;cursor:pointer}
+@media(max-width:480px){.fp-art{width:180px;height:180px;font-size:4rem}}
+</style>
+</head>
+<body>
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><p id="loadingText">സ്റ്റേഷനുകൾ ലോഡ് ചെയ്യുന്നു...</p></div>
+<div class="modal-backdrop" id="timerModal"><div class="modal-card"><h3>⏰ Sleep Timer</h3><p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px" id="timerStatusText">Select duration to auto-stop radio:</p><div class="timer-options"><button class="timer-btn" onclick="setSleepTimer(15)">15 Mins</button><button class="timer-btn" onclick="setSleepTimer(30)">30 Mins</button><button class="timer-btn" onclick="setSleepTimer(45)">45 Mins</button><button class="timer-btn" onclick="setSleepTimer(60)">60 Mins</button><button class="timer-btn" style="grid-column:span 2;color:#e74c3c" onclick="setSleepTimer(0)">Turn Off Timer</button></div><button class="modal-close" onclick="closeTimerModal()">Close</button></div></div>
+
+<!-- SHARE MODAL -->
+<div class="modal-backdrop" id="shareModal"><div class="modal-card"><h3>🔗 Share Station</h3><p id="shareStationName" style="font-weight:700;margin-bottom:6px">Station</p><p style="font-size:.85rem;color:var(--text-muted)">ഈ ലിങ്ക് തുറക്കുന്ന ആൾക്ക് നേരെ ഈ സ്റ്റേഷൻ തുറക്കും.</p><div class="share-link-box"><input id="shareLinkInput" readonly><button onclick="copyShareLink()">Copy</button></div><button class="modal-close" style="background:#25D366;margin-bottom:8px" onclick="shareViaWhatsApp()">Share on WhatsApp</button><button class="modal-close" onclick="closeShareModal()">Close</button></div></div>
+
+<div class="app-container">
+<header class="app-header"><h1>📻 Live Radio</h1><div class="header-actions"><button class="icon-btn install" id="installBtn">⬇️ Install App</button><button class="icon-btn" id="sleepTimerBtn" onclick="openTimerModal()">⏰ <span id="timerBadge">Sleep</span></button><button class="icon-btn" id="themeToggleBtn" onclick="toggleTheme()">🌙</button></div></header>
+<div class="install-banner" id="installBanner"><span>📱 App ആയി Install ചെയ്ത് വേഗത്തിൽ കേൾക്കാം</span><button onclick="triggerInstall()">Install</button><button onclick="dismissInstallBanner()" style="background:transparent;color:#fff">✕</button></div>
+
+<div class="view active" id="homeView"><div class="home-content">
+<div class="global-search"><input type="text" id="globalSearchInput" placeholder="Search any station across all languages..."></div>
+<div id="favoritesSection" style="display:none"><div class="section-title">❤️ Favorite Stations</div><div class="horizontal-scroll" id="favoritesList"></div></div>
+<div id="recentSection" style="display:none"><div class="section-title">🕒 Recently Played</div><div class="horizontal-scroll" id="recentList"></div></div>
+<div><div class="section-title">Quick Access</div><div class="category-grid"><div class="category-card" onclick="openLanguage('all','All Station')"><div class="cat-name">🌐 All Station</div><div class="cat-meta" id="totalStationsCount">0 stations</div></div><div class="category-card" onclick="openLanguage('favorites','My Favorites')"><div class="cat-name">❤️ Saved Favorites</div><div class="cat-meta" id="favCountMeta">0 stations</div></div></div></div>
+<div id="dynamicCategoriesContainer"></div></div></div>
+
+<div class="view" id="listView"><div class="list-header"><button class="back-btn" onclick="goHome()">← Back to Home</button><div class="list-title" id="currentCategoryTitle">All Stations</div><div class="list-subtitle" id="currentCategorySubtitle">0 stations</div><div class="search-box"><input type="text" id="searchInput" placeholder="Search in this list..."></div><div class="genre-filters" id="genreFilters"></div></div><div class="station-list" id="stationList"></div></div>
+
+<div class="bottom-player" id="bottomPlayer">
+<div class="now-playing-info"><div class="np-text" style="cursor:pointer"><div class="np-name" id="npName">Select a station</div><div class="np-status"><span class="status-dot" id="statusDot"></span><span id="npStatus">Ready • Tap to open full player</span></div></div><div class="equalizer" id="equalizer"><span></span><span></span><span></span><span></span></div><button class="share-btn" id="npShareBtn" title="Share" style="display:none" onclick="event.stopPropagation();openShareModal()">🔗</button><button class="fav-btn" id="npFavBtn" title="Toggle Favorite" style="display:none">🤍</button></div>
+<div class="controls-row"><button class="ctrl-btn" id="prevBtn" onclick="event.stopPropagation()">⏮</button><button class="ctrl-btn play-pause" id="playPauseBtn" onclick="event.stopPropagation()">▶</button><button class="ctrl-btn" id="nextBtn" onclick="event.stopPropagation()">⏭</button></div>
+<div class="volume-row" onclick="event.stopPropagation()"><span id="muteBtn">🔊</span><input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.01" value="0.8"></div>
+</div>
+</div>
+
+<!-- FULL SCREEN PLAYER -->
+<div class="full-player" id="fullPlayer">
+<div class="fp-top"><button class="fp-close" onclick="closeFullPlayer()">⌄</button><span style="font-weight:700">Now Playing</span><button class="fp-close" onclick="openShareModal()">🔗</button></div>
+<div class="fp-body">
+<div class="fp-art" id="fpArt">📻</div>
+<div><div class="fp-name" id="fpName">Select a station</div><div class="fp-meta" id="fpMeta">Live Radio</div></div>
+<div class="fp-eq" id="fpEq"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+<div class="fp-controls"><button class="fp-side" id="fpPrevBtn">⏮</button><button class="fp-play" id="fpPlayBtn">▶</button><button class="fp-side" id="fpNextBtn">⏭</button></div>
+<div class="fp-actions"><button class="fp-action" id="fpFavBtn">🤍 Favorite</button><button class="fp-action primary" onclick="openShareModal()">🔗 Share</button><button class="fp-action" onclick="openTimerModal()">⏰ Sleep Timer</button></div>
+<div class="fp-volume"><span id="fpMuteBtn">🔊</span><input type="range" class="volume-slider" id="fpVolumeSlider" min="0" max="1" step="0.01" value="0.8"></div>
+<p class="fp-hint">Tip: ഈ പേജിന്റെ ലിങ്ക് Share ചെയ്താൽ മറ്റുള്ളവർക്ക് ഇതേ സ്റ്റേഷൻ നേരെ തുറക്കാം.</p>
+</div></div>
+
+<div class="toast" id="toast"></div>
+<audio id="audioPlayer" preload="none"></audio>
+<script>
+(function(){
+'use strict';
+const GITHUB_BASE='https://raw.githubusercontent.com/ranjithkannankattil/ranjithkannankattil.github.io/main/js/stations/';
+const CACHE_KEY='radio_stations_cache_v2';
+const CACHE_EXPIRY_MS=12*60*60*1000;
+const STATION_FILES=['afrikaans.js','akan.js','albanian.js','amharic.js','arabic.js','azerbaijani.js','bambara.js','bengali.js','bhojpuri.js','bosnian.js','bulgarian.js','cantonese.js','catalan.js','chichewa.js','chinese.js','croatian.js','czech.js','danish.js','dutch.js','english-music.js','english-news.js','english-talk.js','estonian.js','filipino.js','finnish.js','french.js','german.js','greek.js','hebrew.js','hindi.js','hungarian.js','indonesian.js','italian.js','japanese.js','kannada.js','kazakh.js','korean.js','kurdish.js','latvian.js','lithuanian.js','luganda.js','macedonian.js','malay.js','malayalam.js','more-african.js','more-indian.js','nepali.js','norwegian.js','odia.js','persian.js','polish.js','portuguese-brazil.js','portuguese-portugal.js','punjabi.js','romanian.js','russian.js','serbian.js','sinhala.js','slovak.js','slovenian.js','south-african.js','spanish-latam.js','spanish-spain.js','swahili.js','swedish.js','tamil.js','telugu.js','thai.js','turkish.js','ukrainian.js','urdu.js','vietnamese.js','yoruba-hausa.js'];
+const PRIORITY_LANGUAGES=['malayalam','hindi','tamil','telugu','kannada','bengali','punjabi','urdu','bhojpuri','odia','nepali','sinhala'];
+let allStations=[],baseCategoryStations=[],displayStations=[],currentStation=null,currentStreamIndex=0,hls=null,isPlaying=false,currentCategory='all',activeGenre='All',searchQuery='',reconnectTimer=null;
+let favoriteIds=JSON.parse(localStorage.getItem('radio_favorites')||'[]');
+let recentIds=JSON.parse(localStorage.getItem('radio_recent')||'[]');
+let sleepTimeout=null,sleepInterval=null,sleepEndTime=null;
+let deferredPrompt=null;
+const audio=document.getElementById('audioPlayer');
+const loadingOverlay=document.getElementById('loadingOverlay'),loadingText=document.getElementById('loadingText');
+const homeView=document.getElementById('homeView'),listView=document.getElementById('listView');
+const dynamicCategoriesContainer=document.getElementById('dynamicCategoriesContainer'),stationListEl=document.getElementById('stationList');
+const searchInput=document.getElementById('searchInput'),globalSearchInput=document.getElementById('globalSearchInput'),genreFiltersEl=document.getElementById('genreFilters');
+const currentCategoryTitle=document.getElementById('currentCategoryTitle'),currentCategorySubtitle=document.getElementById('currentCategorySubtitle');
+const npName=document.getElementById('npName'),npStatus=document.getElementById('npStatus'),statusDot=document.getElementById('statusDot'),equalizer=document.getElementById('equalizer'),npFavBtn=document.getElementById('npFavBtn'),playPauseBtn=document.getElementById('playPauseBtn'),prevBtn=document.getElementById('prevBtn'),nextBtn=document.getElementById('nextBtn'),muteBtn=document.getElementById('muteBtn'),volumeSlider=document.getElementById('volumeSlider');
+const toastEl=document.getElementById('toast');
+function showToast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(toastEl._t);toastEl._t=setTimeout(()=>toastEl.classList.remove('show'),2600)}
+
+// --- PWA: Manifest + Service Worker via Blob ---
+function initPWA(){
+  const manifest={name:"Live Radio - Premium",short_name:"Live Radio",start_url:location.pathname,display:"standalone",background_color:"#121212",theme_color:"#6c5ce7",description:"Listen to live radio stations worldwide",icons:[{src:"https://cdn-icons-png.flaticon.com/512/1202/1202224.png",sizes:"512x512",type:"image/png",purpose:"any"}]};
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+  const link=document.createElement('link');link.rel='manifest';link.href=URL.createObjectURL(blob);document.head.appendChild(link);
+  if('serviceWorker' in navigator){
+    const swCode=`self.addEventListener('install',e=>{self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(clients.claim())});self.addEventListener('fetch',e=>{if(e.request.url.includes('raw.githubusercontent.com')){e.respondWith(caches.open('radio-v2').then(async c=>{const hit=await c.match(e.request);if(hit) return hit;const res=await fetch(e.request);if(res.ok) c.put(e.request,res.clone());return res}).catch(()=>fetch(e.request)))}else if(e.request.mode==='navigate'){e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)))}})`;
+    const swBlob=new Blob([swCode],{type:'text/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+  }
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('installBtn').style.display='flex';document.getElementById('installBanner').classList.add('show')});
+  window.addEventListener('appinstalled',()=>{deferredPrompt=null;document.getElementById('installBtn').style.display='none';document.getElementById('installBanner').classList.remove('show');showToast('✅ App Installed!')});
+}
+window.triggerInstall=async function(){if(deferredPrompt){deferredPrompt.prompt();const r=await deferredPrompt.userChoice;if(r.outcome==='accepted') showToast('Installing...');deferredPrompt=null}else{showToast('Browser menu → Add to Home Screen / Install App')}};
+window.dismissInstallBanner=function(){document.getElementById('installBanner').classList.remove('show')};
+
+// --- SHAREABLE LINK ---
+function getShareLink(st){const u=new URL(location.href);u.searchParams.set('station',st.id);u.searchParams.set('lang',st._source||'');return u.toString()}
+window.openShareModal=function(){
+  if(!currentStation){showToast('ആദ്യം ഒരു സ്റ്റേഷൻ തിരഞ്ഞെടുക്കൂ');return}
+  document.getElementById('shareStationName').textContent=currentStation.name;
+  document.getElementById('shareLinkInput').value=getShareLink(currentStation);
+  document.getElementById('shareModal').classList.add('active');
+};
+window.closeShareModal=function(){document.getElementById('shareModal').classList.remove('active')};
+window.copyShareLink=async function(){const v=document.getElementById('shareLinkInput').value;try{await navigator.clipboard.writeText(v);showToast('✅ Link Copied!')}catch(e){document.getElementById('shareLinkInput').select();document.execCommand('copy');showToast('✅ Link Copied!')}};
+window.shareViaWhatsApp=function(){if(!currentStation) return;const txt=`🎧 ${currentStation.name} - Live Radio കേൾക്കൂ: ${getShareLink(currentStation)}`;window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank')};
+async function tryNativeShare(){if(!currentStation) return;const link=getShareLink(currentStation);if(navigator.share){try{await navigator.share({title:currentStation.name,text:`🎧 ${currentStation.name} - Live Radio`,url:link});return true}catch(e){return false}}return false}
+// Auto-open from ?station=ID
+function getStationFromURL(){const p=new URLSearchParams(location.search);return p.get('station')}
+function updateURLForStation(st){if(!st) return;const u=new URL(location.href);u.searchParams.set('station',st.id);history.replaceState({view:history.state?.view||'home',lang:history.state?.lang||'all',title:history.state?.title},'',u.toString())}
+
+// --- FULL PLAYER ---
+window.openFullPlayer=function(){if(!currentStation){showToast('ആദ്യം ഒരു സ്റ്റേഷൻ തിരഞ്ഞെടുക്കൂ');return}syncFullPlayer();document.getElementById('fullPlayer').classList.add('open')};
+window.closeFullPlayer=function(){document.getElementById('fullPlayer').classList.remove('open')};
+function syncFullPlayer(){
+  if(!currentStation) return;
+  const art=document.getElementById('fpArt');
+  art.innerHTML=currentStation.logo?`<img src="${currentStation.logo}" onerror="this.remove();this.parentElement.textContent='${currentStation.name.charAt(0).toUpperCase()}'">`:currentStation.name.charAt(0).toUpperCase();
+  document.getElementById('fpName').textContent=currentStation.name;
+  document.getElementById('fpMeta').textContent=`${currentStation._source} • ${currentStation.category||'Radio'} • Live`;
+  document.getElementById('fpPlayBtn').textContent=isPlaying?'⏸':'▶';
+  document.getElementById('fpEq').classList.toggle('playing',isPlaying);
+  document.getElementById('fpFavBtn').textContent=favoriteIds.includes(currentStation.id)?'❤️ Favorited':'🤍 Favorite';
+  document.getElementById('fpVolumeSlider').value=audio.volume;
+  document.getElementById('fpMuteBtn').textContent=audio.muted||audio.volume===0?'🔇':'🔊';
+}
+document.getElementById('bottomPlayer').addEventListener('click',()=>{if(currentStation) openFullPlayer()});
+
+function initTheme(){const s=localStorage.getItem('radio_theme')||'light';document.documentElement.setAttribute('data-theme',s);document.getElementById('themeToggleBtn').textContent=s==='dark'?'☀️':'🌙'}
+window.toggleTheme=function(){const c=document.documentElement.getAttribute('data-theme');const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('radio_theme',n);document.getElementById('themeToggleBtn').textContent=n==='dark'?'☀️':'🌙'};
+window.openTimerModal=()=>document.getElementById('timerModal').classList.add('active');
+window.closeTimerModal=()=>document.getElementById('timerModal').classList.remove('active');
+window.setSleepTimer=function(m){clearTimeout(sleepTimeout);clearInterval(sleepInterval);const btn=document.getElementById('sleepTimerBtn'),badge=document.getElementById('timerBadge'),st=document.getElementById('timerStatusText');if(m===0){sleepEndTime=null;btn.classList.remove('active');badge.textContent='Sleep';st.textContent='Timer turned off.';closeTimerModal();return}sleepEndTime=Date.now()+m*60*1000;btn.classList.add('active');const upd=()=>{const rem=Math.max(0,sleepEndTime-Date.now());const mins=Math.ceil(rem/60000);badge.textContent=`${mins}m`;st.textContent=`Radio will stop in ${mins} minute(s).`};upd();sleepInterval=setInterval(upd,15000);sleepTimeout=setTimeout(()=>{if(isPlaying) togglePlayPause();setSleepTimer(0);setStatus('Stopped by Sleep Timer')},m*60*1000);closeTimerModal()};
+function setStatus(t,isErr=false){npStatus.textContent=t;statusDot.classList.toggle('error',isErr);equalizer.classList.toggle('playing',isPlaying&&!isErr);const fpEq=document.getElementById('fpEq');if(fpEq) fpEq.classList.toggle('playing',isPlaying&&!isErr)}
+async function loadAllStations(){try{const c=JSON.parse(localStorage.getItem(CACHE_KEY));if(c&&(Date.now()-c.timestamp<CACHE_EXPIRY_MS)&&Array.isArray(c.data)){loadingText.textContent='Loading from fast cache...';return c.data}}catch(e){}const loaded=[];let pc=0;const pr=STATION_FILES.map(async f=>{try{const r=await fetch(GITHUB_BASE+f);if(!r.ok) throw new Error();const txt=await r.text();let fs=null;try{const fn=new Function('window',`${txt} return window.STATIONS || (typeof STATIONS!=='undefined'?STATIONS:null);`);fs=fn({})}catch(e){}if(Array.isArray(fs)){const sn=f.replace('.js','').replace(/-/g,' ');loaded.push(...fs.map(s=>({...s,_source:sn})))}}catch(err){}finally{pc++;loadingText.textContent=`Loading stations... (${pc}/${STATION_FILES.length})`}});await Promise.all(pr);if(loaded.length>0){try{localStorage.setItem(CACHE_KEY,JSON.stringify({timestamp:Date.now(),data:loaded}))}catch(e){}}return loaded}
+function toggleFavorite(id,event){if(event) event.stopPropagation();const i=favoriteIds.indexOf(id);if(i===-1) favoriteIds.unshift(id);else favoriteIds.splice(i,1);localStorage.setItem('radio_favorites',JSON.stringify(favoriteIds));updateFavoriteUI();syncFullPlayer()}
+function addToRecent(id){recentIds=recentIds.filter(x=>x!==id);recentIds.unshift(id);if(recentIds.length>10) recentIds.pop();localStorage.setItem('radio_recent',JSON.stringify(recentIds));renderHomeHorizontalLists()}
+function updateFavoriteUI(){document.getElementById('favCountMeta').textContent=`${favoriteIds.length} stations`;if(currentStation){npFavBtn.style.display='block';npFavBtn.textContent=favoriteIds.includes(currentStation.id)?'❤️':'🤍';document.getElementById('npShareBtn').style.display='flex'}renderHomeHorizontalLists();if(listView.classList.contains('active')){if(currentCategory==='favorites') baseCategoryStations=allStations.filter(s=>favoriteIds.includes(s.id));applyFiltersAndRenderList()}}
+function renderHomeHorizontalLists(){const favS=document.getElementById('favoritesSection'),favL=document.getElementById('favoritesList');const favSt=favoriteIds.map(id=>allStations.find(s=>s.id===id)).filter(Boolean);if(favSt.length>0){favS.style.display='block';favL.innerHTML=favSt.map(st=>createMiniCardHtml(st)).join('')}else favS.style.display='none';const recS=document.getElementById('recentSection'),recL=document.getElementById('recentList');const recSt=recentIds.map(id=>allStations.find(s=>s.id===id)).filter(Boolean);if(recSt.length>0){recS.style.display='block';recL.innerHTML=recSt.map(st=>createMiniCardHtml(st)).join('')}else recS.style.display='none'}
+function createMiniCardHtml(st){const isA=currentStation&&currentStation.id===st.id;const av=st.logo?`<img src="${st.logo}" onerror="this.style.display='none';this.parentElement.textContent='${st.name.charAt(0).toUpperCase()}'">`:st.name.charAt(0).toUpperCase();return `<div class="mini-card ${isA?'active':''}" data-mini-id="${st.id}"><div class="mini-avatar">${av}</div><div class="mini-name">${st.name}</div></div>`}
+document.addEventListener('click',e=>{const m=e.target.closest('[data-mini-id]');if(m) playStationById(m.dataset.miniId)});
+window.playStationById=function(id){const st=allStations.find(s=>s.id===id);if(st) selectStation(st)};
+function renderHomePage(){document.getElementById('totalStationsCount').textContent=`${allStations.length} stations`;updateFavoriteUI();const lm={};allStations.forEach(st=>{const l=st._source||'Other';lm[l]=(lm[l]||0)+1});let langs=Object.keys(lm).sort((a,b)=>{const al=a.toLowerCase(),bl=b.toLowerCase();if(al.includes('malayalam')) return -1;if(bl.includes('malayalam')) return 1;const ap=PRIORITY_LANGUAGES.some(p=>al.includes(p)),bp=PRIORITY_LANGUAGES.some(p=>bl.includes(p));if(ap&&!bp) return -1;if(!ap&&bp) return 1;return a.localeCompare(b)});let india='',other='';langs.forEach(lang=>{const cnt=lm[lang];let dn=lang.split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');const isInd=PRIORITY_LANGUAGES.some(p=>lang.toLowerCase().includes(p));const isMal=lang.toLowerCase().includes('malayalam');const card=`<div class="category-card ${isMal?'highlight':''}" onclick="openLanguage('${lang}','${dn}')"><div class="cat-name">${isMal?'🌟 ':''}${dn}</div><div class="cat-meta">${cnt} stations</div></div>`;if(isInd||isMal) india+=card;else other+=card});let h='';if(india) h+=`<div style="margin-bottom:24px"><div class="section-title">🇮🇳 INDIA & SOUTH ASIA</div><div class="category-grid">${india}</div></div>`;if(other) h+=`<div style="margin-bottom:24px"><div class="section-title">🌍 WORLDWIDE LANGUAGES</div><div class="category-grid">${other}</div></div>`;dynamicCategoriesContainer.innerHTML=h}
+window.openLanguage=function(lang,dn,initSearch=''){currentCategory=lang;activeGenre='All';searchQuery=initSearch.toLowerCase();searchInput.value=initSearch;if(lang==='all') baseCategoryStations=[...allStations];else if(lang==='favorites') baseCategoryStations=allStations.filter(s=>favoriteIds.includes(s.id));else baseCategoryStations=allStations.filter(s=>s._source===lang);currentCategoryTitle.textContent=dn;buildGenreChips(baseCategoryStations);applyFiltersAndRenderList();history.pushState({view:'list',lang:lang,title:dn},'','?lang='+encodeURIComponent(lang)+(currentStation?`&station=${currentStation.id}`:''));homeView.classList.remove('active');listView.classList.add('active');listView.scrollTop=0};
+window.goHome=function(){if(history.state&&history.state.view==='list'){history.back()}else showHomeDirectly()};
+function showHomeDirectly(){listView.classList.remove('active');homeView.classList.add('active');globalSearchInput.value='';renderHomeHorizontalLists();const u=new URL(location.href);u.searchParams.delete('lang');history.replaceState({view:'home'},'',u.toString())}
+window.addEventListener('popstate',function(e){if(e.state&&e.state.view==='list'){const lang=e.state.lang;const title=e.state.title||'Stations';currentCategory=lang;if(lang==='all') baseCategoryStations=[...allStations];else if(lang==='favorites') baseCategoryStations=allStations.filter(s=>favoriteIds.includes(s.id));else baseCategoryStations=allStations.filter(s=>s._source===lang);currentCategoryTitle.textContent=title;buildGenreChips(baseCategoryStations);applyFiltersAndRenderList();homeView.classList.remove('active');listView.classList.add('active')}else{listView.classList.remove('active');homeView.classList.add('active');renderHomeHorizontalLists()}});
+function buildGenreChips(stations){const cats=new Set(['All']);stations.forEach(s=>{if(s.category) cats.add(s.category.trim())});if(cats.size<=2){genreFiltersEl.innerHTML='';return}genreFiltersEl.innerHTML=Array.from(cats).map(c=>`<button class="genre-chip ${c===activeGenre?'active':''}" onclick="setGenreFilter('${c}')">${c}</button>`).join('')}
+window.setGenreFilter=function(g){activeGenre=g;document.querySelectorAll('.genre-chip').forEach(ch=>ch.classList.toggle('active',ch.textContent===g));applyFiltersAndRenderList()};
+function applyFiltersAndRenderList(){displayStations=baseCategoryStations.filter(st=>{const mg=activeGenre==='All'||(st.category&&st.category.toLowerCase()===activeGenre.toLowerCase());const ms=!searchQuery||st.name.toLowerCase().includes(searchQuery)||(st._source&&st._source.toLowerCase().includes(searchQuery));return mg&&ms});currentCategorySubtitle.textContent=`${displayStations.length} stations`;renderStationList(displayStations)}
+function renderStationList(stations){if(stations.length===0){stationListEl.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-muted)">No stations found</div>';return}const frag=document.createDocumentFragment();stations.sort((a,b)=>a.name.localeCompare(b.name)).forEach(station=>{const div=document.createElement('div');div.className='station-item';div.dataset.id=station.id;if(currentStation&&currentStation.id===station.id) div.classList.add('active');const isFav=favoriteIds.includes(station.id);const av=station.logo?`<img src="${station.logo}" onerror="this.style.display='none';this.parentElement.textContent='${station.name.charAt(0).toUpperCase()}'">`:station.name.charAt(0).toUpperCase();div.innerHTML=`<div class="avatar">${av}</div><div class="info"><div class="name">${station.name}</div><div class="meta">${station._source} • ${station.category||'Radio'}</div></div><button class="share-btn" title="Share">🔗</button><button class="fav-btn">${isFav?'❤️':'🤍'}</button>`;div.querySelector('.fav-btn').addEventListener('click',e=>{toggleFavorite(station.id,e);e.target.textContent=favoriteIds.includes(station.id)?'❤️':'🤍'});div.querySelector('.share-btn').addEventListener('click',e=>{e.stopPropagation();const prev=currentStation;currentStation=station;openShareModal();currentStation=prev});div.addEventListener('click',()=>selectStation(station));frag.appendChild(div)});stationListEl.innerHTML='';stationListEl.appendChild(frag)}
+function selectStation(station){if(currentStation&&currentStation.id===station.id){togglePlayPause();return}stopPlayback();currentStation=station;currentStreamIndex=0;npName.textContent=station.name;npFavBtn.style.display='block';npFavBtn.textContent=favoriteIds.includes(station.id)?'❤️':'🤍';document.getElementById('npShareBtn').style.display='flex';setStatus('Loading...');addToRecent(station.id);updateMediaSession(station);updateURLForStation(station);syncFullPlayer();document.querySelectorAll('.station-item,.mini-card').forEach(el=>el.classList.remove('active'));const aEl=stationListEl.querySelector(`[data-id="${station.id}"]`);if(aEl) aEl.classList.add('active');tryPlayStream()}
+function tryPlayStream(){if(!currentStation) return;clearTimeout(reconnectTimer);const streams=currentStation.streams;if(!streams||streams.length===0||currentStreamIndex>=streams.length){setStatus('Stream Offline',true);isPlaying=false;playPauseBtn.textContent='▶';syncFullPlayer();return}const url=streams[currentStreamIndex];setStatus('Connecting...');if(hls){hls.destroy();hls=null}const isHls=url.includes('.m3u8');if(isHls){if(window.Hls&&Hls.isSupported()){hls=new Hls({enableWorker:true});hls.loadSource(url);hls.attachMedia(audio);hls.on(Hls.Events.MANIFEST_PARSED,()=>audio.play().catch(()=>setStatus('Tap Play',true)));hls.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal) handleStreamError()})}else if(audio.canPlayType('application/vnd.apple.mpegurl')){audio.src=url;audio.play().catch(()=>setStatus('Tap Play',true))}else handleStreamError()}else{audio.src=url;audio.play().catch(()=>setStatus('Tap Play',true))}setupAudioListeners()}
+function setupAudioListeners(){audio.onplaying=()=>{isPlaying=true;setStatus('Live');playPauseBtn.textContent='⏸';syncFullPlayer();if('mediaSession' in navigator) navigator.mediaSession.playbackState='playing'};audio.onwaiting=()=>{if(isPlaying) setStatus('Buffering...')};audio.onerror=()=>handleStreamError();audio.onstalled=()=>{if(isPlaying){setStatus('Reconnecting...',true);reconnectTimer=setTimeout(tryPlayStream,3000)}}}
+function handleStreamError(){currentStreamIndex++;if(currentStation&&currentStreamIndex<currentStation.streams.length){setStatus('Switching backup stream...',true);setTimeout(tryPlayStream,1000)}else{setStatus('Offline - Retrying in 5s...',true);isPlaying=false;playPauseBtn.textContent='▶';syncFullPlayer();currentStreamIndex=0;reconnectTimer=setTimeout(tryPlayStream,5000)}}
+function stopPlayback(){clearTimeout(reconnectTimer);if(hls){hls.destroy();hls=null}audio.pause();audio.removeAttribute('src');audio.load();isPlaying=false;playPauseBtn.textContent='▶';equalizer.classList.remove('playing')}
+function togglePlayPause(){if(!currentStation) return;if(isPlaying){clearTimeout(reconnectTimer);audio.pause();isPlaying=false;playPauseBtn.textContent='▶';setStatus('Paused');syncFullPlayer();if('mediaSession' in navigator) navigator.mediaSession.playbackState='paused'}else{audio.play().catch(()=>tryPlayStream());isPlaying=true;playPauseBtn.textContent='⏸';setStatus('Live');syncFullPlayer()}}
+function updateMediaSession(st){if('mediaSession' in navigator){navigator.mediaSession.metadata=new MediaMetadata({title:st.name,artist:`${st._source.toUpperCase()} • Live Radio`,album:st.category||'Live Stream',artwork:st.logo?[{src:st.logo,sizes:'512x512',type:'image/png'}]:[]});navigator.mediaSession.setActionHandler('play',()=>{if(!isPlaying) togglePlayPause()});navigator.mediaSession.setActionHandler('pause',()=>{if(isPlaying) togglePlayPause()});navigator.mediaSession.setActionHandler('nexttrack',playNextStation);navigator.mediaSession.setActionHandler('previoustrack',playPrevStation)}}
+function playNextStation(){const list=displayStations.length>0?displayStations:allStations;if(list.length===0) return;let idx=currentStation?list.findIndex(s=>s.id===currentStation.id):-1;selectStation(list[(idx+1)%list.length])}
+function playPrevStation(){const list=displayStations.length>0?displayStations:allStations;if(list.length===0) return;let idx=currentStation?list.findIndex(s=>s.id===currentStation.id):-1;selectStation(list[(idx-1+list.length)%list.length])}
+npFavBtn.addEventListener('click',e=>{e.stopPropagation();if(currentStation) toggleFavorite(currentStation.id)});
+document.getElementById('npShareBtn').addEventListener('click',e=>{e.stopPropagation();openShareModal()});
+playPauseBtn.addEventListener('click',togglePlayPause);nextBtn.addEventListener('click',playNextStation);prevBtn.addEventListener('click',playPrevStation);
+document.getElementById('fpPlayBtn').addEventListener('click',togglePlayPause);document.getElementById('fpNextBtn').addEventListener('click',playNextStation);document.getElementById('fpPrevBtn').addEventListener('click',playPrevStation);
+document.getElementById('fpFavBtn').addEventListener('click',()=>{if(currentStation) toggleFavorite(currentStation.id)});
+function setVolume(v,muted){audio.volume=v;audio.muted=muted;volumeSlider.value=v;document.getElementById('fpVolumeSlider').value=v;const icon=(muted||v===0)?'🔇':'🔊';muteBtn.textContent=icon;document.getElementById('fpMuteBtn').textContent=icon}
+muteBtn.addEventListener('click',()=>{audio.muted=!audio.muted;setVolume(audio.volume,audio.muted)});
+document.getElementById('fpMuteBtn').addEventListener('click',()=>{audio.muted=!audio.muted;setVolume(audio.volume,audio.muted)});
+volumeSlider.addEventListener('input',e=>setVolume(parseFloat(e.target.value),false));
+document.getElementById('fpVolumeSlider').addEventListener('input',e=>setVolume(parseFloat(e.target.value),false));
+searchInput.addEventListener('input',e=>{searchQuery=e.target.value.toLowerCase();applyFiltersAndRenderList()});
+globalSearchInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.value.trim()!==''){openLanguage('all',`Search: "${e.target.value.trim()}"`,e.target.value.trim())}});
+document.getElementById('installBtn').addEventListener('click',triggerInstall);
+async function init(){initTheme();initPWA();history.replaceState({view:'home'},'',window.location.pathname);allStations=await loadAllStations();if(allStations.length===0){loadingOverlay.innerHTML='<p style="color:red">Failed to load stations. Please check your internet connection.</p>';return}audio.volume=0.8;renderHomePage();loadingOverlay.classList.add('hidden');
+// Deep link: ?station=ID
+const sid=getStationFromURL();
+if(sid){const st=allStations.find(s=>s.id===sid);if(st){selectStation(st);setTimeout(()=>openFullPlayer(),600);showToast(`🎧 ${st.name} - Now Playing`)}else{showToast('Station not found, showing all stations')}}
+}
+init();
+})();
+</script>
+<script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}function isInlineMediaSlotElement(node){return !!(node&&node.getAttribute&&node.getAttribute("data-clippy-inline-media-slot")!==null)}function findInlineMediaSlot(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(isInlineMediaSlotElement(node))return node}return null}function readInlineMediaUrl(node){if(!node)return null;return node.getAttribute&&((node.getAttribute("data-clippy-inline-media-url")||node.getAttribute("data-url")||node.getAttribute("data_url")))||node.href||null}function stripHash(url){return String(url).replace(/#.*$/,"")}function urlsMatch(a,b){if(!a||!b)return false;try{return stripHash(new URL(a,loc).href)===stripHash(new URL(b,loc).href)}catch(_){return stripHash(a)===stripHash(b)}}function isFirstPartyReelUrl(value){try{var url=new URL(value,loc);if(url.protocol!=="https:")return false;var host=url.hostname.toLowerCase();var supported=host==="instagram.com"||host.endsWith(".instagram.com")||host==="facebook.com"||host.endsWith(".facebook.com");return supported&&/\/reels?\//i.test(url.pathname)}catch(_){return false}}function isInlineMediaUrlClick(node,href){var slot=findInlineMediaSlot(node);if(!slot)return false;var slotUrl=readInlineMediaUrl(slot);if(slotUrl)return urlsMatch(href,slotUrl);return isFirstPartyReelUrl(href)}function findDataHref(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(node.getAttribute){var href=node.getAttribute("data-href")||node.getAttribute("data-url");if(href)return{href:href,node:node}}}return null}var nativeOpen=window.open;window.open=function(url){if(parent!==window&&typeof url==="string"&&/^https?:\/\//.test(url)){parent.postMessage({type:"ecto:usercontent-link-click",href:url},"*");return null}return nativeOpen?nativeOpen.apply(window,arguments):null};document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;if(parent===window)return;var a=target.closest?target.closest("a[href]"):null;if(a&&a.href&&/^https?:\/\//.test(a.href)&&a.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(a,a.href))return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*");return}var dataHref=findDataHref(target);if(dataHref&&/^https?:\/\//.test(dataHref.href)&&dataHref.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(dataHref.node,dataHref.href))return;e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:dataHref.href},"*")}},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script></body>
+</html>

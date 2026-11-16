@@ -109,7 +109,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .modal-close{width:100%;padding:10px;border-radius:8px;border:none;background:var(--primary);color:#fff;font-weight:600;cursor:pointer}
 .share-link-box{display:flex;gap:8px;margin:12px 0}.share-link-box input{flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:.85rem}
 .share-link-box button{padding:10px 14px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer}
-.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);background:#1a1a1a;color:#fff;padding:12px 18px;border-radius:999px;font-size:.9rem;font-weight:600;z-index:3000;opacity:0;pointer-events:none;transition:.3s;max-width:90%;text-align:center}
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);background:#1a1a1a;color:#fff;padding:12px 18px;border-radius:999px;font-size:.9rem;font-weight:600;z-index:4500;opacity:0;pointer-events:none;transition:.3s;max-width:90%;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:1000}
 .loading-overlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
@@ -125,10 +125,21 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .fp-song{font-size:.9rem;color:var(--accent);font-weight:600;min-height:1.2em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .eq-panel{display:none;width:100%;max-width:360px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;gap:10px;flex-direction:column}
 .eq-panel.show{display:flex}.eq-row{display:flex;align-items:center;gap:10px;font-size:.85rem;font-weight:600}.eq-row label{width:70px}.eq-row input{flex:1}.eq-row span{width:36px;text-align:right}
-.car-overlay{position:fixed;inset:0;background:#000;color:#fff;z-index:4000;display:none;flex-direction:column;padding:18px;gap:16px}
-.car-overlay.open{display:flex}.car-overlay .car-name{font-size:1.8rem;font-weight:800;text-align:center;line-height:1.2}.car-overlay .car-song{font-size:1rem;color:#ffd166;text-align:center;min-height:1.2em}
-.car-big{flex:1;display:flex;align-items:center;justify-content:center;gap:16px}.car-btn{border:none;border-radius:24px;cursor:pointer;color:#fff;font-weight:800}.car-btn.play{width:150px;height:150px;border-radius:50%;background:#6c5ce7;font-size:3rem}.car-btn.side{width:90px;height:90px;background:#222;font-size:2rem}
-.car-bottom{display:flex;gap:10px}.car-bottom button{flex:1;padding:16px;border-radius:14px;border:none;font-weight:800;font-size:1rem;cursor:pointer}.car-bottom .exit{background:#e74c3c;color:#fff}.car-bottom .fav{background:#222;color:#fff}
+.car-overlay{position:fixed;inset:0;background:#000;color:#fff;z-index:4000;display:none;flex-direction:column;padding:18px;gap:16px;user-select:none}
+.car-overlay.open{display:flex}
+.car-overlay .car-name{font-size:1.85rem;font-weight:800;text-align:center;line-height:1.2;margin-top:8px}
+.car-overlay .car-status{font-size:.9rem;color:#a4b0be;text-align:center}
+.car-overlay .car-song{font-size:1rem;color:#ffd166;text-align:center;min-height:1.2em}
+.car-big{flex:1;display:flex;align-items:center;justify-content:center;gap:20px}
+.car-btn{border:none;border-radius:24px;cursor:pointer;color:#fff;font-weight:800;transition:transform .1s}
+.car-btn:active{transform:scale(.94)}
+.car-btn.play{width:150px;height:150px;border-radius:50%;background:#6c5ce7;font-size:3rem;box-shadow:0 10px 30px rgba(108,92,231,.45)}
+.car-btn.side{width:95px;height:95px;background:#222;font-size:2.1rem;border:1px solid #333}
+.car-bottom{display:flex;gap:12px}
+.car-bottom button{flex:1;padding:18px;border-radius:16px;border:none;font-weight:800;font-size:1.05rem;cursor:pointer}
+.car-bottom button:active{opacity:.85}
+.car-bottom .exit{background:#e74c3c;color:#fff}
+.car-bottom .fav{background:#222;color:#fff;border:1px solid #333}
 </style>
 </head>
 <body>
@@ -192,15 +203,24 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <p class="fp-hint">Tip: റെക്കോർഡ് ചെയ്ത ഓഡിയോ ഫയൽ ഫോണിലേക്ക് തനിയെ ഡൗൺലോഡ് ആകും.</p>
 </div></div>
 
+<!-- CAR MODE OVERLAY -->
 <div class="car-overlay" id="carOverlay">
-<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:800">🚗 CAR MODE</span><button onclick="closeCarMode()" style="background:#222;color:#fff;border:none;padding:10px 14px;border-radius:999px;cursor:pointer">✕ Exit</button></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:800;letter-spacing:1px">🚗 CAR MODE</span><button type="button" onclick="closeCarMode()" style="background:#222;color:#fff;border:1px solid #333;padding:10px 16px;border-radius:999px;font-weight:700;cursor:pointer">✕ Exit</button></div>
 <div class="car-name" id="carName">Select a station</div>
+<div class="car-status" id="carStatus">Ready</div>
 <div class="car-song" id="carSong"></div>
-<div class="car-big"><button class="car-btn side" onclick="playPrevStation()">⏮</button><button class="car-btn play" id="carPlayBtn" onclick="togglePlayPause()">▶</button><button class="car-btn side" onclick="playNextStation()">⏭</button></div>
-<div class="car-bottom"><button class="fav" id="carFavBtn" onclick="toggleFavFromCar()">🤍 Favorite</button><button class="exit" onclick="closeCarMode()">Exit Car Mode</button></div>
+<div class="car-big">
+  <button type="button" class="car-btn side" id="carPrevBtn" aria-label="Previous Station">⏮</button>
+  <button type="button" class="car-btn play" id="carPlayBtn" aria-label="Play or Pause">▶</button>
+  <button type="button" class="car-btn side" id="carNextBtn" aria-label="Next Station">⏭</button>
 </div>
+<div class="car-bottom">
+  <button type="button" class="fav" id="carFavBtn">🤍 Favorite</button>
+  <button type="button" class="exit" onclick="closeCarMode()">Exit Car Mode</button>
+</div>
+</div>
+
 <div class="toast" id="toast"></div>
-<!-- Note: crossorigin is NOT set initially so streams start instantly without double-fetch -->
 <audio id="audioPlayer" preload="none"></audio>
 
 <script>
@@ -232,7 +252,6 @@ const toastEl=document.getElementById('toast');
 
 function showToast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(toastEl._t);toastEl._t=setTimeout(()=>toastEl.classList.remove('show'),2600)}
 
-// --- PRE-WARM DNS/TCP CONNECTION ON TOUCH/HOVER ---
 function preconnectStream(station){
   if(!station||!station.streams||!station.streams[0]) return;
   try{
@@ -245,14 +264,12 @@ function preconnectStream(station){
   }catch(e){}
 }
 
-// --- NETWORK OFFLINE / ONLINE AUTO-RECONNECT ---
 function initNetworkMonitor(){
   const banner=document.getElementById('networkBanner');
   window.addEventListener('offline',()=>{banner.classList.add('show');if(isPlaying){wasPlayingBeforeOffline=true;setStatus('No Internet Connection','error')}});
   window.addEventListener('online',()=>{banner.classList.remove('show');showToast('✅ ഇന്റർനെറ്റ് തിരികെ വന്നു!');if(currentStation&&(wasPlayingBeforeOffline||isPlaying)){wasPlayingBeforeOffline=false;setStatus('Reconnecting...','loading');tryPlayStream()}});
 }
 
-// --- PWA ---
 function initPWA(){
   const manifest={name:"Live Radio - Premium",short_name:"Live Radio",start_url:location.pathname,display:"standalone",background_color:"#121212",theme_color:"#6c5ce7",description:"Listen to live radio stations worldwide",icons:[{src:"https://cdn-icons-png.flaticon.com/512/1202/1202224.png",sizes:"512x512",type:"image/png",purpose:"any"}]};
   const link=document.createElement('link');link.rel='manifest';link.href=URL.createObjectURL(new Blob([JSON.stringify(manifest)],{type:'application/json'}));document.head.appendChild(link);
@@ -266,7 +283,6 @@ function initPWA(){
 window.triggerInstall=async function(){if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null}else{showToast('Browser menu → Add to Home Screen')}};
 window.dismissInstallBanner=function(){document.getElementById('installBanner').classList.remove('show')};
 
-// --- SHARE ---
 function getShareLink(st){const u=new URL(location.href);u.searchParams.set('station',st.id);u.searchParams.set('lang',st._source||'');return u.toString()}
 window.openShareModal=function(){if(!currentStation){showToast('ആദ്യം ഒരു സ്റ്റേഷൻ തിരഞ്ഞെടുക്കൂ');return}document.getElementById('shareStationName').textContent=currentStation.name;document.getElementById('shareLinkInput').value=getShareLink(currentStation);document.getElementById('shareModal').classList.add('active')};
 window.closeShareModal=function(){document.getElementById('shareModal').classList.remove('active')};
@@ -275,7 +291,6 @@ window.shareViaWhatsApp=function(){if(!currentStation) return;window.open('https
 function getStationFromURL(){return new URLSearchParams(location.search)}
 function updateURLForStation(st){if(!st) return;const u=new URL(location.href);u.searchParams.set('station',st.id);u.searchParams.set('lang',st._source||'');history.replaceState({view:history.state?.view||'home',lang:history.state?.lang||'all',title:history.state?.title},'',u.toString())}
 
-// --- FULL PLAYER ---
 window.openFullPlayer=function(){if(!currentStation){showToast('ആദ്യം ഒരു സ്റ്റേഷൻ തിരഞ്ഞെടുക്കൂ');return}syncFullPlayer();document.getElementById('fullPlayer').classList.add('open')};
 window.closeFullPlayer=function(){document.getElementById('fullPlayer').classList.remove('open')};
 function syncFullPlayer(){
@@ -301,6 +316,8 @@ window.setSleepTimer=function(m){clearTimeout(sleepTimeout);clearInterval(sleepI
 
 function setStatus(t,state='ok'){
   npStatus.textContent=t;
+  const carStatusEl=document.getElementById('carStatus');
+  if(carStatusEl) carStatusEl.textContent=t;
   statusDot.classList.remove('error','loading');
   if(state==='error') statusDot.classList.add('error');
   if(state==='loading') statusDot.classList.add('loading');
@@ -308,7 +325,6 @@ function setStatus(t,state='ok'){
   const fpEq=document.getElementById('fpEq');if(fpEq) fpEq.classList.toggle('playing',isPlaying&&state==='ok');
 }
 
-// --- ON-DEMAND FILE LOADER (Zero bandwidth waste) ---
 async function loadFiles(fileNames){
   const toFetch=fileNames.filter(f=>!loadedFiles.has(f));
   if(toFetch.length===0) return;
@@ -340,7 +356,6 @@ async function ensureAllLoaded(){
   renderHomePage();
 }
 
-// --- BILINGUAL SEARCH & LIVE GLOBAL SEARCH ---
 const ML_MAP={'club':'ക്ലബ്','fm':'എഫ്എം','radio':'റേഡിയോ','music':'പാട്ട് സംഗീതം','news':'വാർത്ത','talk':'സംസാരം','malayalam':'മലയാളം','hindi':'ഹിന്ദി','tamil':'തമിഴ്','telugu':'തെലുങ്ക്','kannada':'കന്നഡ','devotional':'ഭക്തി','old':'പഴയ','songs':'പാട്ടുകൾ','song':'പാട്ട്','live':'ലൈവ്','love':'പ്രണയം','gold':'ഗോൾഡ്','red':'റെഡ്','green':'ഗ്രീൻ','mirchi':'മിർച്ചി','asianet':'ഏഷ്യാനെറ്റ്','mazhavil':'മഴവിൽ','manorama':'മനോരമ','mathrubhumi':'മാതൃഭൂമി','flower':'ഫ്ലവർ','big':'ബിഗ്'};
 const ML_REVERSE={};Object.entries(ML_MAP).forEach(([en,ml])=>{ml.split(' ').forEach(w=>ML_REVERSE[w]=en);ML_REVERSE[ml]=en});
 function expandQuery(q){let words=q.toLowerCase().split(/\s+/);let extra=[];words.forEach(w=>{if(ML_MAP[w]) extra.push(...ML_MAP[w].split(' '));if(ML_REVERSE[w]) extra.push(ML_REVERSE[w])});return[...new Set([...words,...extra])].join(' ')}
@@ -354,7 +369,6 @@ async function handleLiveGlobalSearch(raw){
   if(!q){clearBtn.classList.remove('show');resultsBox.classList.remove('show');resultsBox.innerHTML='';mainSections.style.display='block';return}
   clearBtn.classList.add('show');mainSections.style.display='none';resultsBox.classList.add('show');
 
-  // സെർച്ച് ചെയ്യുമ്പോൾ ബാക്കി ഫയലുകൾ കൂടി ലോഡ് ചെയ്തിട്ടില്ലെങ്കിൽ ലോഡ് ചെയ്യുക
   if(!allFilesLoaded && q.length>=2){
     loadFiles(ALL_FILES).then(()=>{ if(globalSearchInput.value.trim().toLowerCase()===q) renderLiveResults(q); });
   }
@@ -459,13 +473,11 @@ function renderStationList(stations){
   stationListEl.innerHTML='';stationListEl.appendChild(frag);
 }
 
-// --- FAST STREAM PLAYBACK (No CORS penalty on normal playback) ---
 function selectStation(station){
   if(currentStation&&currentStation.id===station.id){togglePlayPause();return}
   if(isRecording) stopRecording();
   stopPlayback();
   currentStation=station;currentStreamIndex=0;
-  // സാധാരണ പ്ലേബാക്കിന് crossorigin ഒഴിവാക്കുന്നു -> 2x വേഗത്തിൽ കണക്ട് ആകും
   corsEnabledForCurrent=false;
   audio.removeAttribute('crossorigin');
   saveLastStation(station);lastSong='';
@@ -489,7 +501,6 @@ function tryPlayStream(){
   const isHls=url.includes('.m3u8');
   if(isHls){
     if(window.Hls&&Hls.isSupported()){
-      // Low-latency audio config: ആദ്യത്തെ സെക്കൻഡിൽ തന്നെ പ്ലേ തുടങ്ങാൻ
       hls=new Hls({enableWorker:true,lowLatencyMode:true,maxBufferLength:6,maxMaxBufferLength:12,liveSyncDurationCount:1,startFragPrefetch:true});
       hls.loadSource(url);hls.attachMedia(audio);
       hls.on(Hls.Events.MANIFEST_PARSED,()=>audio.play().catch(()=>setStatus('Tap Play','error')));
@@ -525,10 +536,44 @@ function handleStreamError(){
 }
 
 function stopPlayback(){clearTimeout(reconnectTimer);if(hls){hls.destroy();hls=null}audio.pause();audio.removeAttribute('src');audio.load();isPlaying=false;playPauseBtn.textContent='▶';equalizer.classList.remove('playing')}
-function togglePlayPause(){if(!currentStation) return;if(isPlaying){clearTimeout(reconnectTimer);audio.pause();isPlaying=false;playPauseBtn.textContent='▶';setStatus('Paused','ok');syncFullPlayer();if('mediaSession' in navigator) navigator.mediaSession.playbackState='paused'}else{setStatus('Connecting...','loading');audio.play().catch(()=>tryPlayStream());isPlaying=true;playPauseBtn.textContent='⏸';syncFullPlayer()}}
+
+function togglePlayPause(){
+  if(!currentStation){
+    if(allStations.length>0) selectStation(allStations[0]);
+    return;
+  }
+  if(isPlaying){
+    clearTimeout(reconnectTimer);audio.pause();isPlaying=false;playPauseBtn.textContent='▶';setStatus('Paused','ok');syncFullPlayer();
+    if('mediaSession' in navigator) navigator.mediaSession.playbackState='paused';
+  }else{
+    setStatus('Connecting...','loading');audio.play().catch(()=>tryPlayStream());isPlaying=true;playPauseBtn.textContent='⏸';syncFullPlayer();
+  }
+}
+
 function updateMediaSession(st){if('mediaSession' in navigator){navigator.mediaSession.metadata=new MediaMetadata({title:st.name,artist:`${st._source.toUpperCase()} • Live Radio`,album:st.category||'Live Stream',artwork:st.logo?[{src:st.logo,sizes:'512x512',type:'image/png'}]:[]});navigator.mediaSession.setActionHandler('play',()=>{if(!isPlaying) togglePlayPause()});navigator.mediaSession.setActionHandler('pause',()=>{if(isPlaying) togglePlayPause()});navigator.mediaSession.setActionHandler('nexttrack',playNextStation);navigator.mediaSession.setActionHandler('previoustrack',playPrevStation)}}
-function playNextStation(){const list=displayStations.length>0?displayStations:allStations;if(list.length===0) return;let idx=currentStation?list.findIndex(s=>s.id===currentStation.id):-1;selectStation(list[(idx+1)%list.length])}
-function playPrevStation(){const list=displayStations.length>0?displayStations:allStations;if(list.length===0) return;let idx=currentStation?list.findIndex(s=>s.id===currentStation.id):-1;selectStation(list[(idx-1+list.length)%list.length])}
+
+function getActiveStationQueue(){
+  if(displayStations.length>0) return displayStations;
+  if(currentStation && currentStation._source){
+    const sameLang=allStations.filter(s=>s._source===currentStation._source);
+    if(sameLang.length>0) return sameLang;
+  }
+  return allStations;
+}
+
+function playNextStation(){
+  const list=getActiveStationQueue();
+  if(list.length===0) return;
+  let idx=currentStation?list.findIndex(s=>s.id===currentStation.id):-1;
+  selectStation(list[(idx+1)%list.length]);
+}
+
+function playPrevStation(){
+  const list=getActiveStationQueue();
+  if(list.length===0) return;
+  let idx=currentStation?list.findIndex(s=>s.id===currentStation.id):-1;
+  selectStation(list[(idx-1+list.length)%list.length]);
+}
 
 // --- AUDIO RECORDING ---
 let mediaRecorder=null,recordedChunks=[],isRecording=false;
@@ -574,13 +619,32 @@ let lastSong='';
 function setSongName(title){if(!title||title===lastSong) return;lastSong=title;const clean=title.replace(/^\s*Title:\s*/i,'').trim();['npSong','fpSong','carSong'].forEach(id=>{const el=document.getElementById(id);if(el) el.textContent='🎵 '+clean});if('mediaSession' in navigator&&currentStation){try{navigator.mediaSession.metadata=new MediaMetadata({title:clean,artist:currentStation.name+' • Live Radio',album:currentStation.category||'Live Stream',artwork:currentStation.logo?[{src:currentStation.logo,sizes:'512x512',type:'image/png'}]:[]})}catch(e){}}}
 function parseId3(data){try{const text=new TextDecoder('utf-8').decode(data);const m=text.match(/TIT2[^\x00]*\x00([^\x00]+)/)||text.match(/TPE1[^\x00]*\x00([^\x00]+)/);if(m) return m[1];const chunks=text.split(/[\x00-\x1F\x7F]+/).filter(s=>s.length>3&&/[a-zA-Z\u0D00-\u0D7F]/.test(s));if(chunks.length) return chunks.sort((a,b)=>b.length-a.length)[0]}catch(e){}return null}
 
-// --- CAR MODE ---
-window.openCarMode=function(){if(!currentStation){showToast('ആദ്യം ഒരു സ്റ്റേഷൻ തിരഞ്ഞെടുക്കൂ');return}syncCarMode();document.getElementById('carOverlay').classList.add('open')};
+// --- CAR MODE (Fixed & Exposed Globally + Direct Event Listeners) ---
+window.openCarMode=function(){
+  if(!currentStation){showToast('ആദ്യം ഒരു സ്റ്റേഷൻ തിരഞ്ഞെടുക്കൂ');return}
+  syncCarMode();
+  document.getElementById('carOverlay').classList.add('open');
+};
 window.closeCarMode=function(){document.getElementById('carOverlay').classList.remove('open')};
-function syncCarMode(){if(!currentStation) return;document.getElementById('carName').textContent=currentStation.name;document.getElementById('carSong').textContent=document.getElementById('fpSong')?.textContent||'';document.getElementById('carPlayBtn').textContent=isPlaying?'⏸':'▶';document.getElementById('carFavBtn').textContent=favoriteIds.includes(currentStation.id)?'❤️ Favorited':'🤍 Favorite'}
+function syncCarMode(){
+  if(!currentStation) return;
+  document.getElementById('carName').textContent=currentStation.name;
+  document.getElementById('carStatus').textContent=npStatus.textContent;
+  document.getElementById('carSong').textContent=document.getElementById('fpSong')?.textContent||'';
+  document.getElementById('carPlayBtn').textContent=isPlaying?'⏸':'▶';
+  document.getElementById('carFavBtn').textContent=favoriteIds.includes(currentStation.id)?'❤️ Favorited':'🤍 Favorite';
+}
 window.toggleFavFromCar=function(){if(currentStation){toggleFavorite(currentStation.id);syncCarMode()}};
+window.togglePlayPause=togglePlayPause;
+window.playNextStation=playNextStation;
+window.playPrevStation=playPrevStation;
 
-// --- SAFE EQUALIZER (Enabled only on user interaction) ---
+document.getElementById('carPrevBtn').addEventListener('click',playPrevStation);
+document.getElementById('carPlayBtn').addEventListener('click',togglePlayPause);
+document.getElementById('carNextBtn').addEventListener('click',playNextStation);
+document.getElementById('carFavBtn').addEventListener('click',window.toggleFavFromCar);
+
+// --- SAFE EQUALIZER ---
 let audioCtx=null,bassFilter=null,trebleFilter=null,audioSource=null;
 function ensureAudioGraph(){
   if(audioCtx) return true;
@@ -621,7 +685,6 @@ async function init(){
   history.replaceState({view:'home'},'',window.location.pathname);
   audio.volume=0.8;
 
-  // കാഷെ ഉണ്ടെങ്കിൽ 0ms-ൽ തുറക്കും, ഇല്ലെങ്കിൽ Malayalam മാത്രം ആദ്യം ലോഡ് ചെയ്യും
   let fromCache=false;
   try{
     const c=JSON.parse(localStorage.getItem(CACHE_KEY));

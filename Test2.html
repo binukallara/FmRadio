@@ -291,10 +291,35 @@ window.closeShareModal=function(){document.getElementById('shareModal').classLis
 window.copyShareLink=async function(){const v=document.getElementById('shareLinkInput').value;try{await navigator.clipboard.writeText(v);showToast('✅ Link Copied!')}catch(e){document.getElementById('shareLinkInput').select();document.execCommand('copy');showToast('✅ Link Copied!')}};
 window.shareViaWhatsApp=function(){if(!currentStation) return;window.open('https://wa.me/?text='+encodeURIComponent(`🎧 ${currentStation.name} - Live Radio കേൾക്കൂ: ${getShareLink(currentStation)}`),'_blank')};
 function getStationFromURL(){return new URLSearchParams(location.search)}
-function updateURLForStation(st){if(!st) return;const u=new URL(location.href);u.searchParams.set('station',st.id);u.searchParams.set('lang',st._source||'');history.replaceState({view:history.state?.view||'home',lang:history.state?.lang||'all',title:history.state?.title},'',u.toString())}
 
-window.openFullPlayer=function(){if(!currentStation){showToast('ആദ്യം ഒരു സ്റ്റേഷൻ തിരഞ്ഞെടുക്കൂ');return}syncFullPlayer();document.getElementById('fullPlayer').classList.add('open')};
-window.closeFullPlayer=function(){document.getElementById('fullPlayer').classList.remove('open')};
+// --- FIXED: Preserve current navigation state when updating URL ---
+function updateURLForStation(st){
+  if(!st) return;
+  const u=new URL(location.href);
+  u.searchParams.set('station',st.id);
+  u.searchParams.set('lang',st._source||'');
+  const currentState=history.state || {view:listView.classList.contains('active')?'list':'home',lang:currentCategory,title:currentCategoryTitle.textContent};
+  history.replaceState(currentState,'',u.toString());
+}
+
+window.openFullPlayer=function(){
+  if(!currentStation){showToast('ആദ്യം ഒരു സ്റ്റേഷൻ തിരഞ്ഞെടുക്കൂ');return}
+  syncFullPlayer();
+  const fp=document.getElementById('fullPlayer');
+  if(!fp.classList.contains('open')){
+    fp.classList.add('open');
+    history.pushState({...(history.state||{view:'home'}),overlay:'fullPlayer'},'',location.href);
+  }
+};
+window.closeFullPlayer=function(){
+  const fp=document.getElementById('fullPlayer');
+  if(!fp.classList.contains('open')) return;
+  if(history.state && history.state.overlay==='fullPlayer'){
+    history.back();
+  }else{
+    fp.classList.remove('open');
+  }
+};
 function syncFullPlayer(){
   if(!currentStation) return;
   const art=document.getElementById('fpArt');
@@ -327,7 +352,6 @@ function setStatus(t,state='ok'){
   const fpEq=document.getElementById('fpEq');if(fpEq) fpEq.classList.toggle('playing',isPlaying&&state==='ok');
 }
 
-// --- SAFE & RELIABLE FILE LOADER (Restored exact parser from your working code) ---
 async function loadFiles(fileNames, onProgress){
   const toFetch=fileNames.filter(f=>!loadedFiles.has(f));
   if(toFetch.length===0) return;
@@ -437,7 +461,7 @@ function renderHomePage(){
   dynamicCategoriesContainer.innerHTML=`<div style="margin-bottom:24px"><div class="section-title">🇮🇳 INDIA & SOUTH ASIA</div><div class="category-grid">${india}</div></div><div style="margin-bottom:24px"><div class="section-title">🌍 WORLDWIDE LANGUAGES</div><div class="category-grid">${other}</div></div>`;
 }
 
-window.openLanguage=async function(lang,dn,initSearch=''){
+async function renderListViewData(lang,dn,initSearch=''){
   currentCategory=lang;activeGenre='All';searchQuery=initSearch.toLowerCase();searchInput.value=initSearch;
   currentCategoryTitle.textContent=dn;
   homeView.classList.remove('active');listView.classList.add('active');listView.scrollTop=0;
@@ -459,12 +483,55 @@ window.openLanguage=async function(lang,dn,initSearch=''){
   }
   buildGenreChips(baseCategoryStations);
   applyFiltersAndRenderList();
-  history.pushState({view:'list',lang:lang,title:dn},'','?lang='+encodeURIComponent(lang)+(currentStation?`&station=${currentStation.id}`:''));
+}
+
+window.openLanguage=async function(lang,dn,initSearch=''){
+  await renderListViewData(lang,dn,initSearch);
+  const u=new URL(location.href);
+  u.searchParams.set('lang',lang);
+  if(currentStation) u.searchParams.set('station',currentStation.id);
+  history.pushState({view:'list',lang:lang,title:dn},'',u.toString());
 };
 
-window.goHome=function(){if(history.state&&history.state.view==='list'){history.back()}else showHomeDirectly()};
-function showHomeDirectly(){listView.classList.remove('active');homeView.classList.add('active');renderHomeHorizontalLists();const u=new URL(location.href);u.searchParams.delete('lang');history.replaceState({view:'home'},'',u.toString())}
-window.addEventListener('popstate',function(e){if(e.state&&e.state.view==='list'){openLanguage(e.state.lang,e.state.title||'Stations')}else{listView.classList.remove('active');homeView.classList.add('active');renderHomeHorizontalLists()}});
+window.goHome=function(){
+  if(history.state&&history.state.view==='list'){
+    history.back();
+  }else{
+    showHomeDirectly();
+  }
+};
+
+function showHomeDirectly(){
+  listView.classList.remove('active');
+  homeView.classList.add('active');
+  renderHomeHorizontalLists();
+  const u=new URL(location.href);
+  u.searchParams.delete('lang');
+  history.replaceState({view:'home'},'',u.toString());
+}
+
+// --- FIXED POPSTATE HANDLER (Handles overlays & list->home back navigation cleanly) ---
+window.addEventListener('popstate',function(e){
+  const fp=document.getElementById('fullPlayer');
+  const car=document.getElementById('carOverlay');
+
+  // If FullPlayer or CarMode was open, close them first
+  if(fp.classList.contains('open') && (!e.state || e.state.overlay!=='fullPlayer')){
+    fp.classList.remove('open');
+  }
+  if(car.classList.contains('open') && (!e.state || e.state.overlay!=='carMode')){
+    car.classList.remove('open');
+  }
+
+  if(e.state && e.state.view==='list'){
+    renderListViewData(e.state.lang,e.state.title||'Stations');
+  }else{
+    listView.classList.remove('active');
+    homeView.classList.add('active');
+    renderHomeHorizontalLists();
+  }
+});
+
 function buildGenreChips(stations){const cats=new Set(['All']);stations.forEach(s=>{if(s.category) cats.add(s.category.trim())});if(cats.size<=2){genreFiltersEl.innerHTML='';return}genreFiltersEl.innerHTML=Array.from(cats).map(c=>`<button class="genre-chip ${c===activeGenre?'active':''}" onclick="setGenreFilter('${c}')">${c}</button>`).join('')}
 window.setGenreFilter=function(g){activeGenre=g;document.querySelectorAll('.genre-chip').forEach(ch=>ch.classList.toggle('active',ch.textContent===g));applyFiltersAndRenderList()};
 function applyFiltersAndRenderList(){displayStations=baseCategoryStations.filter(st=>{const mg=activeGenre==='All'||(st.category&&st.category.toLowerCase()===activeGenre.toLowerCase());let ms=true;if(searchQuery){const terms=expandQuery(searchQuery).split(' ');const hay=stationSearchText(st);ms=terms.some(term=>term.length>1&&hay.includes(term))}return mg&&ms});currentCategorySubtitle.textContent=`${displayStations.length} stations`;renderStationList(displayStations)}
@@ -637,9 +704,21 @@ function parseId3(data){try{const text=new TextDecoder('utf-8').decode(data);con
 window.openCarMode=function(){
   if(!currentStation){showToast('ആദ്യം ഒരു സ്റ്റേഷൻ തിരഞ്ഞെടുക്കൂ');return}
   syncCarMode();
-  document.getElementById('carOverlay').classList.add('open');
+  const car=document.getElementById('carOverlay');
+  if(!car.classList.contains('open')){
+    car.classList.add('open');
+    history.pushState({...(history.state||{view:'home'}),overlay:'carMode'},'',location.href);
+  }
 };
-window.closeCarMode=function(){document.getElementById('carOverlay').classList.remove('open')};
+window.closeCarMode=function(){
+  const car=document.getElementById('carOverlay');
+  if(!car.classList.contains('open')) return;
+  if(history.state && history.state.overlay==='carMode'){
+    history.back();
+  }else{
+    car.classList.remove('open');
+  }
+};
 function syncCarMode(){
   if(!currentStation) return;
   document.getElementById('carName').textContent=currentStation.name;
